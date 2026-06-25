@@ -42,8 +42,26 @@ export function GameModeB() {
         if (decision === 'exchange') useGameStore.getState().cpuExchange()
         else if (decision === 'declare') useGameStore.getState().cpuDeclare()
       } else if (currentPhase === 'player_declared') {
-        if (decision === 'accept') useGameStore.getState().cpuAccept()
-        else useGameStore.getState().cpuFold()
+        if (decision === 'exchange') {
+          useGameStore.getState().cpuExchange()
+          setTimeout(() => {
+            const { phase: p2, opponent: opp2, settings: s2, communityCards: cc, revealedCommunityCount: rc } = useGameStore.getState()
+            if (p2 !== 'player_declared') return
+            const finalDecision = cpuDecideAction({
+              cpuState: opp2,
+              playerHasDeclared: true,
+              settings: s2,
+              communityCards: cc.slice(0, rc),
+              hasExchanged: true,
+            })
+            if (finalDecision === 'accept') useGameStore.getState().cpuAccept()
+            else useGameStore.getState().cpuFold()
+          }, cpuThinkTime(settings.cpuDifficulty))
+        } else if (decision === 'accept') {
+          useGameStore.getState().cpuAccept()
+        } else {
+          useGameStore.getState().cpuFold()
+        }
       }
     }, delay)
   }, [])

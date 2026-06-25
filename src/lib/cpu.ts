@@ -9,6 +9,7 @@ interface CpuContext {
   settings: GameSettings
   communityCards?: PlayingCard[]
   playerExchangeCount?: number
+  hasExchanged?: boolean // 宣言応答時に交換済みか（2回交換を防ぐ）
 }
 
 // フラッシュドロー（同スート3枚以上）またはストレートドロー（連続3ランク以上）の有無
@@ -31,7 +32,7 @@ function hasDrawPotential(holeCards: PlayingCard[], communityCards: PlayingCard[
 }
 
 export function cpuDecideAction(ctx: CpuContext): CpuDecision {
-  const { cpuState, playerHasDeclared, settings, communityCards = [], playerExchangeCount = 0 } = ctx
+  const { cpuState, playerHasDeclared, settings, communityCards = [], playerExchangeCount = 0, hasExchanged = false } = ctx
   const difficulty = settings.cpuDifficulty
 
   const allCards = [...cpuState.hand, ...communityCards]
@@ -39,7 +40,7 @@ export function cpuDecideAction(ctx: CpuContext): CpuDecision {
   const value = hand?.value ?? 0 // 1=ハイカード … 10=ロイヤルフラッシュ
 
   if (playerHasDeclared) {
-    return decideFoldOrAccept(value, difficulty, cpuState.foldsUsed, settings.maxFolds)
+    return decideFoldOrAccept(value, difficulty, cpuState.foldsUsed, settings.maxFolds, hasExchanged)
   }
 
   return decideTurnAction(value, difficulty, cpuState, settings, communityCards, playerExchangeCount)
@@ -99,26 +100,33 @@ function decideFoldOrAccept(
   difficulty: CpuDifficulty,
   foldsUsed: number,
   maxFolds: number,
+  hasExchanged: boolean,
 ): CpuDecision {
   const foldsLeft = maxFolds - foldsUsed
   if (foldsLeft === 0) return 'accept' // フォールド不可
 
   switch (difficulty) {
     case 'easy':
-      if (value <= 1) return 'fold'                                 // ハイカードはフォールド
+      // 交換なし：従来通り即断
+      if (value <= 1) return 'fold'
       return Math.random() < 0.5 ? 'accept' : 'fold'
 
     case 'normal':
-      if (value >= 5) return 'accept'                               // ストレート以上：必ず受ける
+      if (value >= 5) return 'accept'
       if (value >= 3) return Math.random() < 0.7 ? 'accept' : 'fold'
       if (value === 2) return Math.random() < 0.4 ? 'accept' : 'fold'
-      return 'fold'                                                  // ハイカード：フォールド
+      // ハイカード：未交換なら50%で交換を試みる
+      if (!hasExchanged && Math.random() < 0.5) return 'exchange'
+      return 'fold'
 
     case 'hard':
       if (value >= 5) return 'accept'
       if (value >= 3) return Math.random() < 0.85 ? 'accept' : 'fold'
+      // ワンペア以下：未交換なら必ず交換してから判断
+      if (!hasExchanged && value <= 2) return 'exchange'
+      // 交換後：ワンペアなら受けるか確率判断、ハイカードならフォールド温存
       if (value === 2) return foldsLeft > 1 ? 'fold' : (Math.random() < 0.5 ? 'accept' : 'fold')
-      return foldsLeft > 1 ? 'fold' : 'accept'                     // ハイカード：残数温存
+      return foldsLeft > 1 ? 'fold' : 'accept'
   }
 }
 
