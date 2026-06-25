@@ -43,6 +43,7 @@ export function GameModeB() {
     } else if (phase === 'player_declared') {
       const totalMs = countdownRemaining * 1000
       const ANIM_MS = 600
+      const MIN_REMAINING_MS = 1500
 
       const decideNow = (hasExchanged: boolean) => {
         const { phase: p, opponent: o, settings: s, communityCards: cc, revealedCommunityCount: rc } = useGameStore.getState()
@@ -52,28 +53,75 @@ export function GameModeB() {
         else useGameStore.getState().cpuFold()
       }
 
-      if (settings.cpuDifficulty === 'easy') {
-        cpuTimerRef.current = setTimeout(() => decideNow(false), totalMs * 0.20)
-      } else {
+      const initialValue = opponent.handResult?.value ?? 0
+
+      if (initialValue >= 3) {
+        // ツーペア以上：交換なし、すぐ受ける
+        cpuTimerRef.current = setTimeout(() => {
+          if (useGameStore.getState().phase !== 'player_declared') return
+          useGameStore.getState().cpuAccept()
+        }, totalMs * 0.15)
+      } else if (initialValue === 2) {
+        // ワンペア：1回交換して判断
         const ratio = settings.cpuDifficulty === 'hard' ? 0.80 : 0.70
-        const exchangeDelay = totalMs * ratio
-        const canExchange = totalMs * (1 - ratio) > 1500
-        const firstDecision = cpuDecideAction({
-          cpuState: opponent,
-          playerHasDeclared: true,
-          settings,
-          communityCards: communityCards.slice(0, revealedCommunityCount),
-        })
-        if (firstDecision === 'exchange' && canExchange) {
+        if (totalMs * (1 - ratio) > MIN_REMAINING_MS) {
           cpuTimerRef.current = setTimeout(() => {
-            const { phase: p } = useGameStore.getState()
-            if (p !== 'player_declared') return
+            if (useGameStore.getState().phase !== 'player_declared') return
             useGameStore.getState().cpuExchange()
             setTimeout(() => decideNow(true), ANIM_MS)
-          }, exchangeDelay)
+          }, totalMs * ratio)
         } else {
-          cpuTimerRef.current = setTimeout(() => decideNow(false), exchangeDelay)
+          cpuTimerRef.current = setTimeout(() => decideNow(false), totalMs * ratio)
         }
+      } else if (settings.cpuDifficulty === 'easy') {
+        // ハイカード easy：1回だけ70%で交換
+        if (totalMs * 0.30 > MIN_REMAINING_MS) {
+          cpuTimerRef.current = setTimeout(() => {
+            if (useGameStore.getState().phase !== 'player_declared') return
+            useGameStore.getState().cpuExchange()
+            setTimeout(() => decideNow(true), ANIM_MS)
+          }, totalMs * 0.70)
+        } else {
+          cpuTimerRef.current = setTimeout(() => decideNow(false), totalMs * 0.20)
+        }
+      } else if (settings.cpuDifficulty === 'normal') {
+        // ハイカード normal：最大2回（30%・60%）
+        const startTime = Date.now()
+        cpuTimerRef.current = setTimeout(() => {
+          if (useGameStore.getState().phase !== 'player_declared') return
+          useGameStore.getState().cpuExchange()
+          setTimeout(() => {
+            const { phase: p2, opponent: o2 } = useGameStore.getState()
+            if (p2 !== 'player_declared') return
+            if ((o2.handResult?.value ?? 0) >= 3) { useGameStore.getState().cpuAccept(); return }
+            const secondDelay = Math.max(0, totalMs * 0.60 - (Date.now() - startTime))
+            setTimeout(() => {
+              if (useGameStore.getState().phase !== 'player_declared') return
+              useGameStore.getState().cpuExchange()
+              setTimeout(() => decideNow(true), ANIM_MS)
+            }, secondDelay)
+          }, ANIM_MS)
+        }, totalMs * 0.30)
+      } else {
+        // ハイカード hard：ギリギリまで連続交換
+        const startTime = Date.now()
+        const tryExchange = (count: number) => {
+          if (useGameStore.getState().phase !== 'player_declared') return
+          useGameStore.getState().cpuExchange()
+          setTimeout(() => {
+            const { phase: p, opponent: o } = useGameStore.getState()
+            if (p !== 'player_declared') return
+            const newValue = o.handResult?.value ?? 0
+            const remaining = totalMs - (Date.now() - startTime)
+            if (newValue >= 3) { useGameStore.getState().cpuAccept(); return }
+            if (remaining <= MIN_REMAINING_MS + ANIM_MS + 400 || count >= 10) {
+              decideNow(true)
+            } else {
+              setTimeout(() => tryExchange(count + 1), 300)
+            }
+          }, ANIM_MS)
+        }
+        cpuTimerRef.current = setTimeout(() => tryExchange(0), 500)
       }
     }
   }, [])
