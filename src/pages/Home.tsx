@@ -136,9 +136,14 @@ export function Home() {
             </Button>
           </div>
 
-          <Button variant="ghost" size="sm" onClick={() => navigate('/settings')} className="text-white/40">
-            カスタムパラメータ設定
-          </Button>
+          <div className="flex gap-3 justify-center">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/how-to-play')} className="text-white/40">
+              遊び方
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/settings')} className="text-white/40">
+              カスタムパラメータ設定
+            </Button>
+          </div>
         </div>
       )}
 

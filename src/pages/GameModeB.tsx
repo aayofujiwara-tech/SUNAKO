@@ -174,6 +174,12 @@ export function GameModeB() {
 
   return (
     <div className="min-h-dvh bg-casino-bg text-white flex flex-col">
+      <div className="flex-none px-4 pt-3">
+        <button onClick={() => navigate('/')} className="text-xs text-white/40 hover:text-white/70 transition-colors">
+          ← タイトル
+        </button>
+      </div>
+
       {/* 相手エリア */}
       <section className="flex-none p-4 flex flex-col items-center gap-2 border-b border-white/10">
         <p className="text-xs text-white/50 uppercase tracking-wider">

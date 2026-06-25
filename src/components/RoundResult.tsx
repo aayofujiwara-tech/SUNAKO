@@ -22,8 +22,9 @@ export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver,
 
   const isModeBShowdown = !foldedBy && communityCards && communityCards.length > 0
 
+  const playerBestFiveIds = new Set((player.handResult?.bestFive ?? []).map((c) => c.id))
   const communityHighlights = isModeBShowdown
-    ? (player.handResult?.bestFive ?? [])
+    ? (communityCards ?? []).filter((c) => playerBestFiveIds.has(c.id))
     : []
 
   return (
