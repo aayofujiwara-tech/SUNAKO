@@ -123,7 +123,6 @@ export const useGameStore = create<Store>()((set, get) => ({
         hasDeclared: false,
         handResult: playerResult,
         isExchanging: false,
-        foldsUsed: 0,
       },
       opponent: {
         ...st.opponent,
@@ -131,7 +130,6 @@ export const useGameStore = create<Store>()((set, get) => ({
         hasDeclared: false,
         handResult: opponentResult,
         isExchanging: false,
-        foldsUsed: 0,
       },
     }))
   },
@@ -169,9 +167,8 @@ export const useGameStore = create<Store>()((set, get) => ({
     set((st) => {
       const newFoldsUsed = st.player.foldsUsed + 1
       const outOfFolds = newFoldsUsed >= st.settings.maxFolds
-      const newOpponentScore = st.opponent.score + 1
-      const scoreWin = newOpponentScore >= st.settings.targetScore
-      const isGameOver = outOfFolds || scoreWin
+      const newOpponentScore = outOfFolds ? st.opponent.score + 1 : st.opponent.score
+      const isGameOver = newOpponentScore >= st.settings.targetScore
       return {
         phase: isGameOver ? 'game_over' : 'round_result',
         roundWinner: 'opponent',
@@ -216,9 +213,8 @@ export const useGameStore = create<Store>()((set, get) => ({
     set((st) => {
       const newFoldsUsed = st.opponent.foldsUsed + 1
       const outOfFolds = newFoldsUsed >= st.settings.maxFolds
-      const newPlayerScore = st.player.score + 1
-      const scoreWin = newPlayerScore >= st.settings.targetScore
-      const isGameOver = outOfFolds || scoreWin
+      const newPlayerScore = outOfFolds ? st.player.score + 1 : st.player.score
+      const isGameOver = newPlayerScore >= st.settings.targetScore
       return {
         phase: isGameOver ? 'game_over' : 'round_result',
         roundWinner: 'player',
@@ -316,9 +312,8 @@ export const useGameStore = create<Store>()((set, get) => ({
         if (st.phase === 'opponent_declared') {
           const newFoldsUsed = st.player.foldsUsed + 1
           const outOfFolds = newFoldsUsed >= st.settings.maxFolds
-          const newOpponentScore = st.opponent.score + 1
-          const scoreWin = newOpponentScore >= st.settings.targetScore
-          const isGameOver = outOfFolds || scoreWin
+          const newOpponentScore = outOfFolds ? st.opponent.score + 1 : st.opponent.score
+          const isGameOver = newOpponentScore >= st.settings.targetScore
           return {
             countdownRemaining: 0,
             phase: isGameOver ? 'game_over' : 'round_result',
