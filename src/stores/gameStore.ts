@@ -242,11 +242,23 @@ export const useGameStore = create<Store>()((set, get) => ({
   },
 
   resolveShowdown: () => {
-    const { player, opponent, settings } = get()
-    if (!player.handResult || !opponent.handResult) return
+    const { player, opponent, settings, communityCards, revealedCommunityCount } = get()
 
-    const cmp = compareHands(player.handResult, opponent.handResult)
+    // Mode B: ショーダウン時点の公開コミュニティカードで最終評価（bestFive を確定させる）
+    let playerHandResult = player.handResult
+    let opponentHandResult = opponent.handResult
+    if (settings.mode === 'B') {
+      const revealed = communityCards.slice(0, revealedCommunityCount)
+      playerHandResult = evaluateBestHand([...player.hand, ...revealed])
+      opponentHandResult = evaluateBestHand([...opponent.hand, ...revealed])
+    }
+
+    if (!playerHandResult || !opponentHandResult) return
+
+    const cmp = compareHands(playerHandResult, opponentHandResult)
     const roundWinner = cmp > 0 ? 'player' : cmp < 0 ? 'opponent' : 'draw'
+    const finalPlayer = playerHandResult
+    const finalOpponent = opponentHandResult
 
     set((st) => {
       const newPlayerScore = st.player.score + (roundWinner === 'player' ? 1 : 0)
@@ -262,8 +274,8 @@ export const useGameStore = create<Store>()((set, get) => ({
         roundWinner,
         phase: gameWinner ? 'game_over' : 'round_result',
         gameWinner,
-        player: { ...st.player, score: newPlayerScore },
-        opponent: { ...st.opponent, score: newOpponentScore },
+        player: { ...st.player, score: newPlayerScore, handResult: finalPlayer },
+        opponent: { ...st.opponent, score: newOpponentScore, handResult: finalOpponent },
       }
     })
   },
