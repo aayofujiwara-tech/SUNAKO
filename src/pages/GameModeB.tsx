@@ -87,9 +87,6 @@ export function GameModeB() {
   const showResult = store.phase === 'round_result' || store.phase === 'game_over'
   const showHand = store.phase === 'playing' || store.phase === 'player_declared'
 
-  const revealedCommunity = store.communityCards.slice(0, store.revealedCommunityCount)
-  const playerAllCards = [...store.player.hand, ...revealedCommunity]
-  const opponentAllCards = [...store.opponent.hand, ...revealedCommunity]
   const highlightCards = showHand ? (store.player.handResult?.bestFive ?? []) : []
 
   return (
@@ -155,12 +152,13 @@ export function GameModeB() {
       {showResult && (
         <RoundResult
           roundWinner={store.roundWinner}
-          player={{ ...store.player, hand: playerAllCards }}
-          opponent={{ ...store.opponent, hand: opponentAllCards }}
+          player={store.player}
+          opponent={store.opponent}
           onNext={handleNext}
           isGameOver={store.phase === 'game_over'}
           gameWinner={store.gameWinner}
           foldedBy={store.foldedBy}
+          communityCards={store.communityCards}
         />
       )}
     </div>

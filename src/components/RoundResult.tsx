@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { CardHand } from './CardHand'
 import { Button } from './ui/button'
-import type { PlayerState } from '@/types'
+import type { PlayerState, PlayingCard } from '@/types'
 
 interface Props {
   roundWinner: 'player' | 'opponent' | 'draw' | null
@@ -11,24 +11,31 @@ interface Props {
   isGameOver: boolean
   gameWinner: 'player' | 'opponent' | null
   foldedBy: 'player' | 'opponent' | null
+  communityCards?: PlayingCard[]
 }
 
-export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver, gameWinner, foldedBy }: Props) {
+export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver, gameWinner, foldedBy, communityCards }: Props) {
   const resultLabel =
     roundWinner === 'player' ? 'あなたの勝ち！' : roundWinner === 'opponent' ? '相手の勝ち' : '引き分け'
   const resultColor =
     roundWinner === 'player' ? 'text-casino-gold' : roundWinner === 'opponent' ? 'text-red-400' : 'text-white/70'
 
+  const isModeBShowdown = !foldedBy && communityCards && communityCards.length > 0
+
+  const communityHighlights = isModeBShowdown
+    ? [...(opponent.handResult?.bestFive ?? []), ...(player.handResult?.bestFive ?? [])]
+    : []
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto"
     >
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        className="bg-casino-surface border border-white/10 rounded-2xl p-6 max-w-lg w-full flex flex-col gap-5"
+        className="bg-casino-surface border border-white/10 rounded-2xl p-6 max-w-lg w-full flex flex-col gap-5 my-4"
       >
         {isGameOver && gameWinner && (
           <div className="text-center">
@@ -45,6 +52,41 @@ export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver,
           <div className="text-center py-6 text-white/60 text-sm">
             {foldedBy === 'opponent' ? '相手がフォールドしました' : 'あなたがフォールドしました'}
           </div>
+        ) : isModeBShowdown ? (
+          <>
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-xs text-white/50 uppercase tracking-wider">コミュニティカード</p>
+              <CardHand
+                cards={communityCards}
+                highlightCards={communityHighlights}
+                small
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-xs text-white/50 uppercase">相手の手札</p>
+                {opponent.handResult && (
+                  <span className="text-xs bg-white/10 rounded px-2 py-0.5 text-white">{opponent.handResult.name}</span>
+                )}
+                <CardHand
+                  cards={[...opponent.hand].sort((a, b) => b.rank - a.rank)}
+                  highlightCards={opponent.handResult?.bestFive ?? []}
+                  small
+                />
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-xs text-white/50 uppercase">あなたの手札</p>
+                {player.handResult && (
+                  <span className="text-xs bg-white/10 rounded px-2 py-0.5 text-white">{player.handResult.name}</span>
+                )}
+                <CardHand
+                  cards={[...player.hand].sort((a, b) => b.rank - a.rank)}
+                  highlightCards={player.handResult?.bestFive ?? []}
+                  small
+                />
+              </div>
+            </div>
+          </>
         ) : (
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col items-center gap-2">

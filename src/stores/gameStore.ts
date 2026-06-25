@@ -247,15 +247,14 @@ export const useGameStore = create<Store>()((set, get) => ({
   },
 
   resolveShowdown: () => {
-    const { player, opponent, settings, communityCards, revealedCommunityCount } = get()
+    const { player, opponent, settings, communityCards } = get()
 
-    // Mode B: ショーダウン時点の公開コミュニティカードで最終評価（bestFive を確定させる）
     let playerHandResult = player.handResult
     let opponentHandResult = opponent.handResult
     if (settings.mode === 'B') {
-      const revealed = communityCards.slice(0, revealedCommunityCount)
-      playerHandResult = evaluateBestHand([...player.hand, ...revealed])
-      opponentHandResult = evaluateBestHand([...opponent.hand, ...revealed])
+      // ショーダウン時は全5枚のコミュニティカードで評価
+      playerHandResult = evaluateBestHand([...player.hand, ...communityCards])
+      opponentHandResult = evaluateBestHand([...opponent.hand, ...communityCards])
     }
 
     if (!playerHandResult || !opponentHandResult) return
@@ -280,6 +279,7 @@ export const useGameStore = create<Store>()((set, get) => ({
         phase: gameWinner ? 'game_over' : 'round_result',
         gameWinner,
         foldedBy: null,
+        revealedCommunityCount: settings.mode === 'B' ? 5 : st.revealedCommunityCount,
         player: { ...st.player, score: newPlayerScore, handResult: finalPlayer },
         opponent: { ...st.opponent, score: newOpponentScore, handResult: finalOpponent },
       }
