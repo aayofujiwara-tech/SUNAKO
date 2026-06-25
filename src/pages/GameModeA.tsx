@@ -45,32 +45,38 @@ export function GameModeA() {
       }, delay)
     } else if (triggerPhase === 'player_declared') {
       const { opponent: opp, countdownRemaining } = useGameStore.getState()
-      const decision = cpuDecideAction({ cpuState: opp, playerHasDeclared: true, settings })
+      const totalMs = countdownRemaining * 1000
       const ANIM_MS = 600
-      const canExchange = countdownRemaining > 1
-      const exchangeDelay = Math.min(
-        cpuThinkTime(settings.cpuDifficulty),
-        (settings.countdownSeconds / 3) * 1000,
-      )
       clearCpuTimer()
-      cpuTimerRef.current = setTimeout(() => {
-        const { phase: p } = useGameStore.getState()
+
+      const decideNow = (hasExchanged: boolean) => {
+        const { phase: p, opponent: o, settings: s } = useGameStore.getState()
         if (p !== 'player_declared') return
-        if (decision === 'exchange' && canExchange) {
-          useGameStore.getState().cpuExchange()
-          setTimeout(() => {
-            const { phase: p2, opponent: opp2, settings: s2 } = useGameStore.getState()
-            if (p2 !== 'player_declared') return
-            const finalDecision = cpuDecideAction({ cpuState: opp2, playerHasDeclared: true, settings: s2, hasExchanged: true })
-            if (finalDecision === 'accept') useGameStore.getState().cpuAccept()
-            else useGameStore.getState().cpuFold()
-          }, ANIM_MS + cpuThinkTime(settings.cpuDifficulty))
-        } else if (decision === 'accept') {
-          useGameStore.getState().cpuAccept()
+        const d = cpuDecideAction({ cpuState: o, playerHasDeclared: true, settings: s, hasExchanged })
+        if (d === 'accept') useGameStore.getState().cpuAccept()
+        else useGameStore.getState().cpuFold()
+      }
+
+      if (settings.cpuDifficulty === 'easy') {
+        // easy: 交換なし、カウントダウン20%で即判断
+        cpuTimerRef.current = setTimeout(() => decideNow(false), totalMs * 0.20)
+      } else {
+        // normal: 70%、hard: 80% のタイミングで交換→即判断
+        const ratio = settings.cpuDifficulty === 'hard' ? 0.80 : 0.70
+        const exchangeDelay = totalMs * ratio
+        const canExchange = totalMs * (1 - ratio) > 1500
+        const firstDecision = cpuDecideAction({ cpuState: opp, playerHasDeclared: true, settings })
+        if (firstDecision === 'exchange' && canExchange) {
+          cpuTimerRef.current = setTimeout(() => {
+            const { phase: p } = useGameStore.getState()
+            if (p !== 'player_declared') return
+            useGameStore.getState().cpuExchange()
+            setTimeout(() => decideNow(true), ANIM_MS)
+          }, exchangeDelay)
         } else {
-          useGameStore.getState().cpuFold()
+          cpuTimerRef.current = setTimeout(() => decideNow(false), exchangeDelay)
         }
-      }, decision === 'exchange' && canExchange ? exchangeDelay : cpuThinkTime(settings.cpuDifficulty))
+      }
     }
   }, [])
 

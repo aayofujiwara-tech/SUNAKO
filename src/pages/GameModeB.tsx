@@ -25,48 +25,57 @@ export function GameModeB() {
   const runCpuTurn = useCallback(() => {
     const { phase, opponent, settings, communityCards, revealedCommunityCount, countdownRemaining } = useGameStore.getState()
     if (settings.matchType !== 'cpu') return
-
-    const decision = cpuDecideAction({
-      cpuState: opponent,
-      playerHasDeclared: phase === 'player_declared',
-      settings,
-      communityCards: communityCards.slice(0, revealedCommunityCount),
-    })
-
-    const delay = cpuThinkTime(settings.cpuDifficulty)
-    const canExchange = countdownRemaining > 1
-    const exchangeDelay = Math.min(delay, (settings.countdownSeconds / 3) * 1000)
     if (cpuTimerRef.current) clearTimeout(cpuTimerRef.current)
 
-    cpuTimerRef.current = setTimeout(() => {
-      const { phase: currentPhase } = useGameStore.getState()
-      if (currentPhase === 'playing') {
+    if (phase === 'playing') {
+      const decision = cpuDecideAction({
+        cpuState: opponent,
+        playerHasDeclared: false,
+        settings,
+        communityCards: communityCards.slice(0, revealedCommunityCount),
+      })
+      cpuTimerRef.current = setTimeout(() => {
+        const { phase: p } = useGameStore.getState()
+        if (p !== 'playing') return
         if (decision === 'exchange') useGameStore.getState().cpuExchange()
         else if (decision === 'declare') useGameStore.getState().cpuDeclare()
-      } else if (currentPhase === 'player_declared') {
-        const ANIM_MS = 600
-        if (decision === 'exchange' && canExchange) {
-          useGameStore.getState().cpuExchange()
-          setTimeout(() => {
-            const { phase: p2, opponent: opp2, settings: s2, communityCards: cc, revealedCommunityCount: rc } = useGameStore.getState()
-            if (p2 !== 'player_declared') return
-            const finalDecision = cpuDecideAction({
-              cpuState: opp2,
-              playerHasDeclared: true,
-              settings: s2,
-              communityCards: cc.slice(0, rc),
-              hasExchanged: true,
-            })
-            if (finalDecision === 'accept') useGameStore.getState().cpuAccept()
-            else useGameStore.getState().cpuFold()
-          }, ANIM_MS + cpuThinkTime(settings.cpuDifficulty))
-        } else if (decision === 'accept') {
-          useGameStore.getState().cpuAccept()
+      }, cpuThinkTime(settings.cpuDifficulty))
+    } else if (phase === 'player_declared') {
+      const totalMs = countdownRemaining * 1000
+      const ANIM_MS = 600
+
+      const decideNow = (hasExchanged: boolean) => {
+        const { phase: p, opponent: o, settings: s, communityCards: cc, revealedCommunityCount: rc } = useGameStore.getState()
+        if (p !== 'player_declared') return
+        const d = cpuDecideAction({ cpuState: o, playerHasDeclared: true, settings: s, communityCards: cc.slice(0, rc), hasExchanged })
+        if (d === 'accept') useGameStore.getState().cpuAccept()
+        else useGameStore.getState().cpuFold()
+      }
+
+      if (settings.cpuDifficulty === 'easy') {
+        cpuTimerRef.current = setTimeout(() => decideNow(false), totalMs * 0.20)
+      } else {
+        const ratio = settings.cpuDifficulty === 'hard' ? 0.80 : 0.70
+        const exchangeDelay = totalMs * ratio
+        const canExchange = totalMs * (1 - ratio) > 1500
+        const firstDecision = cpuDecideAction({
+          cpuState: opponent,
+          playerHasDeclared: true,
+          settings,
+          communityCards: communityCards.slice(0, revealedCommunityCount),
+        })
+        if (firstDecision === 'exchange' && canExchange) {
+          cpuTimerRef.current = setTimeout(() => {
+            const { phase: p } = useGameStore.getState()
+            if (p !== 'player_declared') return
+            useGameStore.getState().cpuExchange()
+            setTimeout(() => decideNow(true), ANIM_MS)
+          }, exchangeDelay)
         } else {
-          useGameStore.getState().cpuFold()
+          cpuTimerRef.current = setTimeout(() => decideNow(false), exchangeDelay)
         }
       }
-    }, decision === 'exchange' && canExchange ? exchangeDelay : delay)
+    }
   }, [])
 
   useEffect(() => {
