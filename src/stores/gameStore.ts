@@ -64,8 +64,9 @@ interface GameActions {
   // Mode B community
   revealNextCommunityCard: () => void
 
-  // Showdown
+  // Showdown / fold continuation
   resolveShowdown: () => void
+  continueFold: () => void
   nextRound: () => void
   resetGame: () => void
 
@@ -174,41 +175,21 @@ export const useGameStore = create<Store>()((set, get) => ({
     const outOfFolds = newFoldsUsed >= st.settings.maxFolds
 
     if (!outOfFolds) {
-      // ラウンド継続：フォールド残数を消費して新しい手を配る
-      const { communityCards, playerHand, opponentHand, playerResult, opponentResult } = dealNewCards(st.settings)
       set({
-        phase: 'playing',
-        communityCards,
-        revealedCommunityCount: 0,
-        roundWinner: null,
-        foldedBy: null,
-        player: {
-          ...st.player,
-          hand: playerHand,
-          hasDeclared: false,
-          handResult: playerResult,
-          isExchanging: false,
-          foldsUsed: newFoldsUsed,
-        },
-        opponent: {
-          ...st.opponent,
-          hand: opponentHand,
-          hasDeclared: false,
-          handResult: opponentResult,
-          isExchanging: false,
-        },
+        phase: 'fold_result',
+        foldedBy: 'player',
+        player: { ...st.player, foldsUsed: newFoldsUsed },
       })
       return
     }
 
-    // 残数0：相手に勝利点、ラウンド終了
     const newOpponentScore = st.opponent.score + 1
     const isGameOver = newOpponentScore >= st.settings.targetScore
     set({
-      phase: isGameOver ? 'game_over' : 'round_result',
+      phase: 'fold_result',
+      foldedBy: 'player',
       roundWinner: 'opponent',
       gameWinner: isGameOver ? 'opponent' : null,
-      foldedBy: 'player',
       player: { ...st.player, foldsUsed: newFoldsUsed },
       opponent: { ...st.opponent, score: newOpponentScore },
     })
@@ -249,41 +230,21 @@ export const useGameStore = create<Store>()((set, get) => ({
     const outOfFolds = newFoldsUsed >= st.settings.maxFolds
 
     if (!outOfFolds) {
-      // ラウンド継続：フォールド残数を消費して新しい手を配る
-      const { communityCards, playerHand, opponentHand, playerResult, opponentResult } = dealNewCards(st.settings)
       set({
-        phase: 'playing',
-        communityCards,
-        revealedCommunityCount: 0,
-        roundWinner: null,
-        foldedBy: null,
-        player: {
-          ...st.player,
-          hand: playerHand,
-          hasDeclared: false,
-          handResult: playerResult,
-          isExchanging: false,
-        },
-        opponent: {
-          ...st.opponent,
-          hand: opponentHand,
-          hasDeclared: false,
-          handResult: opponentResult,
-          isExchanging: false,
-          foldsUsed: newFoldsUsed,
-        },
+        phase: 'fold_result',
+        foldedBy: 'opponent',
+        opponent: { ...st.opponent, foldsUsed: newFoldsUsed },
       })
       return
     }
 
-    // 残数0：自分に勝利点、ラウンド終了
     const newPlayerScore = st.player.score + 1
     const isGameOver = newPlayerScore >= st.settings.targetScore
     set({
-      phase: isGameOver ? 'game_over' : 'round_result',
+      phase: 'fold_result',
+      foldedBy: 'opponent',
       roundWinner: 'player',
       gameWinner: isGameOver ? 'player' : null,
-      foldedBy: 'opponent',
       opponent: { ...st.opponent, foldsUsed: newFoldsUsed },
       player: { ...st.player, score: newPlayerScore },
     })
@@ -311,7 +272,6 @@ export const useGameStore = create<Store>()((set, get) => ({
     let playerHandResult = player.handResult
     let opponentHandResult = opponent.handResult
     if (settings.mode === 'B') {
-      // ショーダウン時は全5枚のコミュニティカードで評価
       playerHandResult = evaluateBestHand([...player.hand, ...communityCards])
       opponentHandResult = evaluateBestHand([...opponent.hand, ...communityCards])
     }
@@ -345,6 +305,35 @@ export const useGameStore = create<Store>()((set, get) => ({
     })
   },
 
+  continueFold: () => {
+    const { foldedBy, player, opponent, settings, gameWinner } = get()
+
+    if (gameWinner) {
+      set({ phase: 'game_over' })
+      return
+    }
+
+    const foldsUsed = foldedBy === 'player' ? player.foldsUsed : opponent.foldsUsed
+    const isLastFold = foldsUsed >= settings.maxFolds
+
+    if (isLastFold) {
+      get().nextRound()
+      return
+    }
+
+    // 非最終フォールド：フォールド残数を保持したまま新しい手を配る
+    const { communityCards, playerHand, opponentHand, playerResult, opponentResult } = dealNewCards(settings)
+    set({
+      phase: 'playing',
+      communityCards,
+      revealedCommunityCount: 0,
+      roundWinner: null,
+      foldedBy: null,
+      player: { ...player, hand: playerHand, hasDeclared: false, handResult: playerResult, isExchanging: false },
+      opponent: { ...opponent, hand: opponentHand, hasDeclared: false, handResult: opponentResult, isExchanging: false },
+    })
+  },
+
   nextRound: () => {
     get().dealRound()
   },
@@ -372,48 +361,27 @@ export const useGameStore = create<Store>()((set, get) => ({
     const next = st.countdownRemaining - 1
 
     if (next <= 0 && st.phase === 'opponent_declared') {
-      // タイムアウト強制フォールド
       const newFoldsUsed = st.player.foldsUsed + 1
       const outOfFolds = newFoldsUsed >= st.settings.maxFolds
 
       if (!outOfFolds) {
-        // ラウンド継続
-        const { communityCards, playerHand, opponentHand, playerResult, opponentResult } = dealNewCards(st.settings)
         set({
           countdownRemaining: 0,
-          phase: 'playing',
-          communityCards,
-          revealedCommunityCount: 0,
-          roundWinner: null,
-          foldedBy: null,
-          player: {
-            ...st.player,
-            hand: playerHand,
-            hasDeclared: false,
-            handResult: playerResult,
-            isExchanging: false,
-            foldsUsed: newFoldsUsed,
-          },
-          opponent: {
-            ...st.opponent,
-            hand: opponentHand,
-            hasDeclared: false,
-            handResult: opponentResult,
-            isExchanging: false,
-          },
+          phase: 'fold_result',
+          foldedBy: 'player',
+          player: { ...st.player, foldsUsed: newFoldsUsed },
         })
         return
       }
 
-      // 残数0：相手に勝利点、ラウンド終了
       const newOpponentScore = st.opponent.score + 1
       const isGameOver = newOpponentScore >= st.settings.targetScore
       set({
         countdownRemaining: 0,
-        phase: isGameOver ? 'game_over' : 'round_result',
+        phase: 'fold_result',
+        foldedBy: 'player',
         roundWinner: 'opponent',
         gameWinner: isGameOver ? 'opponent' : null,
-        foldedBy: 'player',
         player: { ...st.player, foldsUsed: newFoldsUsed },
         opponent: { ...st.opponent, score: newOpponentScore },
       })

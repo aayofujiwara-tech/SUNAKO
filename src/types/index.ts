@@ -34,6 +34,7 @@ export type GamePhase =
   | 'opponent_declared'
   | 'player_declared'
   | 'showdown'
+  | 'fold_result'
   | 'round_result'
   | 'game_over'
 

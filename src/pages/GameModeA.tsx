@@ -6,6 +6,7 @@ import { ScorePanel } from '@/components/ScorePanel'
 import { ActionButtons } from '@/components/ActionButtons'
 import { HandDisplay } from '@/components/HandDisplay'
 import { RoundResult } from '@/components/RoundResult'
+import { FoldNotification } from '@/components/FoldNotification'
 import { StatusBanner } from '@/components/StatusBanner'
 import { cpuDecideAction, cpuThinkTime } from '@/lib/cpu'
 
@@ -142,6 +143,15 @@ export function GameModeA() {
           disabled={store.phase === 'showdown' || showResult}
         />
       </section>
+
+      {store.phase === 'fold_result' && store.foldedBy && (
+        <FoldNotification
+          foldedBy={store.foldedBy}
+          foldsUsed={store.foldedBy === 'player' ? store.player.foldsUsed : store.opponent.foldsUsed}
+          maxFolds={store.settings.maxFolds}
+          onClose={store.continueFold}
+        />
+      )}
 
       {/* ラウンド結果 */}
       {showResult && (
