@@ -44,14 +44,19 @@ export function GameModeA() {
         }
       }, delay)
     } else if (triggerPhase === 'player_declared') {
-      const { opponent: opp } = useGameStore.getState()
+      const { opponent: opp, countdownRemaining } = useGameStore.getState()
       const decision = cpuDecideAction({ cpuState: opp, playerHasDeclared: true, settings })
-      const delay = cpuThinkTime(settings.cpuDifficulty)
+      const ANIM_MS = 600
+      const canExchange = countdownRemaining > 1
+      const exchangeDelay = Math.min(
+        cpuThinkTime(settings.cpuDifficulty),
+        (settings.countdownSeconds / 3) * 1000,
+      )
       clearCpuTimer()
       cpuTimerRef.current = setTimeout(() => {
         const { phase: p } = useGameStore.getState()
         if (p !== 'player_declared') return
-        if (decision === 'exchange') {
+        if (decision === 'exchange' && canExchange) {
           useGameStore.getState().cpuExchange()
           setTimeout(() => {
             const { phase: p2, opponent: opp2, settings: s2 } = useGameStore.getState()
@@ -59,13 +64,13 @@ export function GameModeA() {
             const finalDecision = cpuDecideAction({ cpuState: opp2, playerHasDeclared: true, settings: s2, hasExchanged: true })
             if (finalDecision === 'accept') useGameStore.getState().cpuAccept()
             else useGameStore.getState().cpuFold()
-          }, cpuThinkTime(settings.cpuDifficulty))
+          }, ANIM_MS + cpuThinkTime(settings.cpuDifficulty))
         } else if (decision === 'accept') {
           useGameStore.getState().cpuAccept()
         } else {
           useGameStore.getState().cpuFold()
         }
-      }, delay)
+      }, decision === 'exchange' && canExchange ? exchangeDelay : cpuThinkTime(settings.cpuDifficulty))
     }
   }, [])
 
@@ -109,10 +114,11 @@ export function GameModeA() {
         <CardHand
           cards={store.opponent.hand}
           faceDown
+          isShuffling={store.opponent.isExchanging}
           label={`手札 ${store.opponent.hand.length}枚`}
         />
         {store.opponent.isExchanging && (
-          <p className="text-xs text-white/40 animate-pulse">引き直し中…</p>
+          <p className="text-xs text-white/40 animate-pulse">交換中…</p>
         )}
         {store.phase === 'opponent_declared' && (
           <p className="text-sm font-semibold text-red-400 animate-pulse">⚠ 宣言！</p>

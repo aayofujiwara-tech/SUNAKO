@@ -23,7 +23,7 @@ export function GameModeB() {
   }
 
   const runCpuTurn = useCallback(() => {
-    const { phase, opponent, settings, communityCards, revealedCommunityCount } = useGameStore.getState()
+    const { phase, opponent, settings, communityCards, revealedCommunityCount, countdownRemaining } = useGameStore.getState()
     if (settings.matchType !== 'cpu') return
 
     const decision = cpuDecideAction({
@@ -34,6 +34,8 @@ export function GameModeB() {
     })
 
     const delay = cpuThinkTime(settings.cpuDifficulty)
+    const canExchange = countdownRemaining > 1
+    const exchangeDelay = Math.min(delay, (settings.countdownSeconds / 3) * 1000)
     if (cpuTimerRef.current) clearTimeout(cpuTimerRef.current)
 
     cpuTimerRef.current = setTimeout(() => {
@@ -42,7 +44,8 @@ export function GameModeB() {
         if (decision === 'exchange') useGameStore.getState().cpuExchange()
         else if (decision === 'declare') useGameStore.getState().cpuDeclare()
       } else if (currentPhase === 'player_declared') {
-        if (decision === 'exchange') {
+        const ANIM_MS = 600
+        if (decision === 'exchange' && canExchange) {
           useGameStore.getState().cpuExchange()
           setTimeout(() => {
             const { phase: p2, opponent: opp2, settings: s2, communityCards: cc, revealedCommunityCount: rc } = useGameStore.getState()
@@ -56,14 +59,14 @@ export function GameModeB() {
             })
             if (finalDecision === 'accept') useGameStore.getState().cpuAccept()
             else useGameStore.getState().cpuFold()
-          }, cpuThinkTime(settings.cpuDifficulty))
+          }, ANIM_MS + cpuThinkTime(settings.cpuDifficulty))
         } else if (decision === 'accept') {
           useGameStore.getState().cpuAccept()
         } else {
           useGameStore.getState().cpuFold()
         }
       }
-    }, delay)
+    }, decision === 'exchange' && canExchange ? exchangeDelay : delay)
   }, [])
 
   useEffect(() => {
@@ -119,7 +122,10 @@ export function GameModeB() {
         <p className="text-xs text-white/50 uppercase tracking-wider">
           {store.settings.matchType === 'cpu' ? `CPU (${store.settings.cpuDifficulty})` : '相手'}
         </p>
-        <CardHand cards={store.opponent.hand} faceDown small label="手札 2枚" />
+        <CardHand cards={store.opponent.hand} faceDown small isShuffling={store.opponent.isExchanging} label="手札 2枚" />
+        {store.opponent.isExchanging && (
+          <p className="text-xs text-white/40 animate-pulse">交換中…</p>
+        )}
         {store.phase === 'opponent_declared' && (
           <p className="text-sm font-semibold text-red-400 animate-pulse">⚠ 宣言！</p>
         )}

@@ -3,6 +3,8 @@ import type { GameState, GameSettings, PlayerState } from '@/types'
 import { drawRandom, drawRandomExcluding } from '@/lib/cards'
 import { evaluateBestHand, compareHands } from '@/lib/handEvaluator'
 
+const CPU_EXCHANGE_ANIMATION_MS = 600
+
 const DEFAULT_SETTINGS: GameSettings = {
   mode: 'A',
   matchType: 'cpu',
@@ -196,19 +198,22 @@ export const useGameStore = create<Store>()((set, get) => ({
   },
 
   cpuExchange: () => {
-    const { settings, communityCards, revealedCommunityCount } = get()
-    const handSize = settings.mode === 'A' ? 7 : 2
-    const communityIds = new Set(communityCards.map((c) => c.id))
-    const newHand = settings.mode === 'B'
-      ? drawRandomExcluding(handSize, communityIds)
-      : drawRandom(handSize)
-    const evalCards = settings.mode === 'B'
-      ? [...newHand, ...communityCards.slice(0, revealedCommunityCount)]
-      : newHand
-    const handResult = evaluateBestHand(evalCards)
-    set((st) => ({
-      opponent: { ...st.opponent, hand: newHand, handResult, isExchanging: false },
-    }))
+    set((st) => ({ opponent: { ...st.opponent, isExchanging: true } }))
+    setTimeout(() => {
+      const { settings, communityCards, revealedCommunityCount } = get()
+      const handSize = settings.mode === 'A' ? 7 : 2
+      const communityIds = new Set(communityCards.map((c) => c.id))
+      const newHand = settings.mode === 'B'
+        ? drawRandomExcluding(handSize, communityIds)
+        : drawRandom(handSize)
+      const evalCards = settings.mode === 'B'
+        ? [...newHand, ...communityCards.slice(0, revealedCommunityCount)]
+        : newHand
+      const handResult = evaluateBestHand(evalCards)
+      set((st) => ({
+        opponent: { ...st.opponent, hand: newHand, handResult, isExchanging: false },
+      }))
+    }, CPU_EXCHANGE_ANIMATION_MS)
   },
 
   cpuDeclare: () => {
