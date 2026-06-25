@@ -200,7 +200,10 @@ export const useGameStore = create<Store>()((set, get) => ({
     set((st) => ({ opponent: { ...st.opponent, isExchanging: true } }))
     setTimeout(() => {
       const { settings, communityCards, revealedCommunityCount, phase } = get()
-      if (phase !== 'playing' && phase !== 'player_declared') return
+      if (phase !== 'playing' && phase !== 'player_declared') {
+        set((st) => ({ opponent: { ...st.opponent, isExchanging: false } }))
+        return
+      }
       const handSize = settings.mode === 'A' ? 7 : 2
       const communityIds = new Set(communityCards.map((c) => c.id))
       const newHand = settings.mode === 'B'
@@ -364,6 +367,12 @@ export const useGameStore = create<Store>()((set, get) => ({
   tickCountdown: () => {
     const st = get()
     const next = st.countdownRemaining - 1
+
+    if (next <= 0 && st.phase === 'player_declared') {
+      set({ countdownRemaining: 0 })
+      get().cpuAccept()
+      return
+    }
 
     if (next <= 0 && st.phase === 'opponent_declared') {
       const newFoldsUsed = st.player.foldsUsed + 1

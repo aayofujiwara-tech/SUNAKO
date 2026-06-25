@@ -6,7 +6,7 @@ import { isFirebaseConfigured } from '@/lib/firebase'
 import { generateRoomCode } from '@/lib/utils'
 import { createRoom, getRoom } from '@/lib/firebase'
 import type { GameMode, CpuDifficulty } from '@/types'
-import { drawRandom } from '@/lib/cards'
+import { drawRandom, drawRandomExcluding } from '@/lib/cards'
 import { evaluateBestHand } from '@/lib/handEvaluator'
 
 export function Home() {
@@ -30,9 +30,11 @@ export function Home() {
     setIsLoading(true)
     const code = generateRoomCode()
     const handSize = mode === 'A' ? 7 : 2
-    const hostHand = drawRandom(handSize)
-    const guestHand = drawRandom(handSize)
     const communityCards = mode === 'B' ? drawRandom(5) : []
+    const communityIds = new Set(communityCards.map((c) => c.id))
+    const hostHand = communityIds.size > 0 ? drawRandomExcluding(handSize, communityIds) : drawRandom(handSize)
+    const hostIds = new Set([...communityIds, ...hostHand.map((c) => c.id)])
+    const guestHand = drawRandomExcluding(handSize, hostIds)
 
     await createRoom(code, {
       hostId: code + '-host',
