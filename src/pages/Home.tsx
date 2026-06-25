@@ -149,7 +149,7 @@ export function Home() {
 
       {tab === 'online' && (
         <div className="flex flex-col gap-5 w-full max-w-sm">
-          {!firebaseOk && (
+          {!firebaseOk && import.meta.env.DEV && (
             <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-3 text-sm text-red-300">
               Firebase未設定です。.env.local を設定してください。
             </div>
