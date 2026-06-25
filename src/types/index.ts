@@ -69,6 +69,7 @@ export interface GameState {
   countdownRemaining: number
   roundWinner: 'player' | 'opponent' | 'draw' | null
   gameWinner: 'player' | 'opponent' | null
+  foldedBy: 'player' | 'opponent' | null
   roomCode: string | null
   isHost: boolean
 }

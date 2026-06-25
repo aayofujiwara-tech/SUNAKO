@@ -72,6 +72,7 @@ export const useGameStore = create<Store>()((set, get) => ({
   countdownRemaining: 0,
   roundWinner: null,
   gameWinner: null,
+  foldedBy: null,
   roomCode: null,
   isHost: false,
 
@@ -86,6 +87,7 @@ export const useGameStore = create<Store>()((set, get) => ({
       revealedCommunityCount: 0,
       roundWinner: null,
       gameWinner: null,
+      foldedBy: null,
     })
     get().dealRound()
   },
@@ -114,6 +116,7 @@ export const useGameStore = create<Store>()((set, get) => ({
       communityCards,
       revealedCommunityCount: 0,
       roundWinner: null,
+      foldedBy: null,
       player: {
         ...st.player,
         hand: playerHand,
@@ -173,6 +176,7 @@ export const useGameStore = create<Store>()((set, get) => ({
         phase: isGameOver ? 'game_over' : 'round_result',
         roundWinner: 'opponent',
         gameWinner: isGameOver ? 'opponent' : null,
+        foldedBy: 'player',
         player: { ...st.player, foldsUsed: newFoldsUsed },
         opponent: { ...st.opponent, score: newOpponentScore },
       }
@@ -219,6 +223,7 @@ export const useGameStore = create<Store>()((set, get) => ({
         phase: isGameOver ? 'game_over' : 'round_result',
         roundWinner: 'player',
         gameWinner: isGameOver ? 'player' : null,
+        foldedBy: 'opponent',
         opponent: { ...st.opponent, foldsUsed: newFoldsUsed },
         player: { ...st.player, score: newPlayerScore },
       }
@@ -274,6 +279,7 @@ export const useGameStore = create<Store>()((set, get) => ({
         roundWinner,
         phase: gameWinner ? 'game_over' : 'round_result',
         gameWinner,
+        foldedBy: null,
         player: { ...st.player, score: newPlayerScore, handResult: finalPlayer },
         opponent: { ...st.opponent, score: newOpponentScore, handResult: finalOpponent },
       }
@@ -291,6 +297,7 @@ export const useGameStore = create<Store>()((set, get) => ({
       revealedCommunityCount: 0,
       roundWinner: null,
       gameWinner: null,
+      foldedBy: null,
       player: defaultPlayer(),
       opponent: defaultPlayer(),
     })
@@ -317,6 +324,7 @@ export const useGameStore = create<Store>()((set, get) => ({
             phase: isGameOver ? 'game_over' : 'round_result',
             roundWinner: 'opponent',
             gameWinner: isGameOver ? 'opponent' : null,
+            foldedBy: 'player',
             player: { ...st.player, foldsUsed: newFoldsUsed },
             opponent: { ...st.opponent, score: newOpponentScore },
           }

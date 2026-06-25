@@ -160,6 +160,7 @@ export function GameModeB() {
           onNext={handleNext}
           isGameOver={store.phase === 'game_over'}
           gameWinner={store.gameWinner}
+          foldedBy={store.foldedBy}
         />
       )}
     </div>

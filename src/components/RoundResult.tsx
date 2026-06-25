@@ -10,9 +10,10 @@ interface Props {
   onNext: () => void
   isGameOver: boolean
   gameWinner: 'player' | 'opponent' | null
+  foldedBy: 'player' | 'opponent' | null
 }
 
-export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver, gameWinner }: Props) {
+export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver, gameWinner, foldedBy }: Props) {
   const resultLabel =
     roundWinner === 'player' ? 'あなたの勝ち！' : roundWinner === 'opponent' ? '相手の勝ち' : '引き分け'
   const resultColor =
@@ -40,26 +41,36 @@ export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver,
 
         <p className={`text-2xl font-bold text-center ${resultColor}`}>{resultLabel}</p>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-xs text-white/50 uppercase">相手の手</p>
-            {opponent.handResult && (
-              <span className="text-xs bg-white/10 rounded px-2 py-0.5 text-white">{opponent.handResult.name}</span>
-            )}
-            <CardHand cards={opponent.hand} highlightCards={opponent.handResult?.bestFive ?? []} small />
+        {foldedBy ? (
+          <div className="text-center py-6 text-white/60 text-sm">
+            {foldedBy === 'opponent' ? '相手がフォールドしました' : 'あなたがフォールドしました'}
           </div>
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-xs text-white/50 uppercase">あなたの手</p>
-            {player.handResult && (
-              <span className="text-xs bg-white/10 rounded px-2 py-0.5 text-white">{player.handResult.name}</span>
-            )}
-            <CardHand
-              cards={player.hand}
-              highlightCards={player.handResult?.bestFive ?? []}
-              small
-            />
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xs text-white/50 uppercase">相手の手</p>
+              {opponent.handResult && (
+                <span className="text-xs bg-white/10 rounded px-2 py-0.5 text-white">{opponent.handResult.name}</span>
+              )}
+              <CardHand
+                cards={[...(opponent.handResult?.bestFive ?? [])].sort((a, b) => b.rank - a.rank)}
+                highlightCards={opponent.handResult?.bestFive ?? []}
+                small
+              />
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xs text-white/50 uppercase">あなたの手</p>
+              {player.handResult && (
+                <span className="text-xs bg-white/10 rounded px-2 py-0.5 text-white">{player.handResult.name}</span>
+              )}
+              <CardHand
+                cards={[...(player.handResult?.bestFive ?? [])].sort((a, b) => b.rank - a.rank)}
+                highlightCards={player.handResult?.bestFive ?? []}
+                small
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <Button variant="default" size="lg" onClick={onNext} className="w-full">
           {isGameOver ? 'トップに戻る' : '次のラウンド →'}
