@@ -23,7 +23,7 @@ export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver,
   const isModeBShowdown = !foldedBy && communityCards && communityCards.length > 0
 
   const communityHighlights = isModeBShowdown
-    ? [...(opponent.handResult?.bestFive ?? []), ...(player.handResult?.bestFive ?? [])]
+    ? (player.handResult?.bestFive ?? [])
     : []
 
   return (
@@ -70,7 +70,6 @@ export function RoundResult({ roundWinner, player, opponent, onNext, isGameOver,
                 )}
                 <CardHand
                   cards={[...opponent.hand].sort((a, b) => b.rank - a.rank)}
-                  highlightCards={opponent.handResult?.bestFive ?? []}
                   small
                 />
               </div>
