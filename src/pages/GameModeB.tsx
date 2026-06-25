@@ -190,7 +190,7 @@ export function GameModeB() {
   const highlightCards = showHand ? (store.player.handResult?.bestFive ?? []) : []
 
   return (
-    <div className="min-h-dvh bg-casino-bg text-white flex flex-col">
+    <div className="min-h-dvh bg-casino-bg text-white flex flex-col max-w-md mx-auto">
       <div className="flex-none px-4 pt-3">
         <button onClick={() => navigate('/')} className="text-xs text-white/40 hover:text-white/70 transition-colors">
           ← タイトル
