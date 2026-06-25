@@ -3,7 +3,7 @@ import type { GameState, GameSettings, PlayerState } from '@/types'
 import { drawRandom, drawRandomExcluding } from '@/lib/cards'
 import { evaluateBestHand, compareHands } from '@/lib/handEvaluator'
 
-const CPU_EXCHANGE_ANIMATION_MS = 600
+export const CPU_EXCHANGE_ANIMATION_MS = 600
 
 const DEFAULT_SETTINGS: GameSettings = {
   mode: 'A',
@@ -33,9 +33,8 @@ function dealNewCards(settings: GameSettings) {
   const playerHand = settings.mode === 'B'
     ? drawRandomExcluding(handSize, communityIds)
     : drawRandom(handSize)
-  const opponentHand = settings.mode === 'B'
-    ? drawRandomExcluding(handSize, communityIds)
-    : drawRandom(handSize)
+  const usedIds = new Set([...communityIds, ...playerHand.map((c) => c.id)])
+  const opponentHand = drawRandomExcluding(handSize, usedIds)
   return {
     communityCards,
     playerHand,
@@ -200,7 +199,8 @@ export const useGameStore = create<Store>()((set, get) => ({
   cpuExchange: () => {
     set((st) => ({ opponent: { ...st.opponent, isExchanging: true } }))
     setTimeout(() => {
-      const { settings, communityCards, revealedCommunityCount } = get()
+      const { settings, communityCards, revealedCommunityCount, phase } = get()
+      if (phase !== 'playing' && phase !== 'player_declared') return
       const handSize = settings.mode === 'A' ? 7 : 2
       const communityIds = new Set(communityCards.map((c) => c.id))
       const newHand = settings.mode === 'B'

@@ -10,6 +10,7 @@ import { RoundResult } from '@/components/RoundResult'
 import { FoldNotification } from '@/components/FoldNotification'
 import { StatusBanner } from '@/components/StatusBanner'
 import { cpuDecideAction, cpuThinkTime } from '@/lib/cpu'
+import { CPU_EXCHANGE_ANIMATION_MS } from '@/stores/gameStore'
 
 export function GameModeB() {
   const navigate = useNavigate()
@@ -43,6 +44,10 @@ export function GameModeB() {
         if (decision === 'exchange') {
           cpuExchangeCountRef.current++
           useGameStore.getState().cpuExchange()
+          // Follow up after animation so CPU can declare even if no more community cards reveal
+          cpuTimerRef.current = setTimeout(() => {
+            if (useGameStore.getState().phase === 'playing') runCpuTurn()
+          }, CPU_EXCHANGE_ANIMATION_MS + 100)
         } else if (decision === 'declare') {
           useGameStore.getState().cpuDeclare()
         }

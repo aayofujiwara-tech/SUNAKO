@@ -9,6 +9,7 @@ import { RoundResult } from '@/components/RoundResult'
 import { FoldNotification } from '@/components/FoldNotification'
 import { StatusBanner } from '@/components/StatusBanner'
 import { cpuDecideAction, cpuThinkTime } from '@/lib/cpu'
+import { CPU_EXCHANGE_ANIMATION_MS } from '@/stores/gameStore'
 
 export function GameModeA() {
   const navigate = useNavigate()
@@ -34,12 +35,14 @@ export function GameModeA() {
         if (p !== 'playing') return
         if (decision === 'exchange') {
           useGameStore.getState().cpuExchange()
+          // Wait for exchange animation to finish before re-evaluating
+          const followUpDelay = Math.max(cpuThinkTime(settings.cpuDifficulty), CPU_EXCHANGE_ANIMATION_MS + 100)
           setTimeout(() => {
             const { phase: p2, settings: s2, opponent: o2, player: plr2 } = useGameStore.getState()
             if (p2 !== 'playing') return
             const d2 = cpuDecideAction({ cpuState: o2, playerHasDeclared: false, settings: s2, cpuExchangeCount: 1, playerFoldsUsed: plr2.foldsUsed })
             if (d2 === 'declare') useGameStore.getState().cpuDeclare()
-          }, cpuThinkTime(settings.cpuDifficulty))
+          }, followUpDelay)
         } else if (decision === 'declare') {
           useGameStore.getState().cpuDeclare()
         }
