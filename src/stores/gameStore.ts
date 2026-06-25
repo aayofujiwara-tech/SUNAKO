@@ -8,10 +8,10 @@ const CPU_EXCHANGE_ANIMATION_MS = 600
 const DEFAULT_SETTINGS: GameSettings = {
   mode: 'A',
   matchType: 'cpu',
-  maxFolds: 3,
-  countdownSeconds: 10,
-  targetScore: 5,
-  communityRevealInterval: 3,
+  maxFolds: 2,
+  countdownSeconds: 5,
+  targetScore: 3,
+  communityRevealInterval: 2,
   cpuDifficulty: 'normal',
 }
 
