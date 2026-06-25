@@ -56,10 +56,14 @@ export function GameModeB() {
     // コミュニティカードを時間経過で自動めくり（フェーズ変化に依存せず 1 本のタイマーで管理）
     const intervalMs = useGameStore.getState().settings.communityRevealInterval * 1000
     communityTimerRef.current = setInterval(() => {
-      const { revealedCommunityCount, phase } = useGameStore.getState()
+      const { revealedCommunityCount, phase, settings } = useGameStore.getState()
       if (revealedCommunityCount >= 5) return
       if (phase === 'playing' || phase === 'player_declared' || phase === 'opponent_declared') {
         useGameStore.getState().revealNextCommunityCard()
+        // コミュニティカードが増えるたびに CPU に再評価の機会を与える
+        if (phase === 'playing' && settings.matchType === 'cpu') {
+          runCpuTurn()
+        }
       }
     }, intervalMs)
 
