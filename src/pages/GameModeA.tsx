@@ -25,7 +25,8 @@ export function GameModeA() {
     if (settings.matchType !== 'cpu') return
 
     if (triggerPhase === 'playing') {
-      const decision = cpuDecideAction({ cpuState: opponent, playerHasDeclared: false, settings })
+      const { player } = useGameStore.getState()
+      const decision = cpuDecideAction({ cpuState: opponent, playerHasDeclared: false, settings, cpuExchangeCount: 0, playerFoldsUsed: player.foldsUsed })
       const delay = cpuThinkTime(settings.cpuDifficulty)
       clearCpuTimer()
       cpuTimerRef.current = setTimeout(() => {
@@ -34,9 +35,9 @@ export function GameModeA() {
         if (decision === 'exchange') {
           useGameStore.getState().cpuExchange()
           setTimeout(() => {
-            const { phase: p2, settings: s2, opponent: o2 } = useGameStore.getState()
+            const { phase: p2, settings: s2, opponent: o2, player: plr2 } = useGameStore.getState()
             if (p2 !== 'playing') return
-            const d2 = cpuDecideAction({ cpuState: o2, playerHasDeclared: false, settings: s2 })
+            const d2 = cpuDecideAction({ cpuState: o2, playerHasDeclared: false, settings: s2, cpuExchangeCount: 1, playerFoldsUsed: plr2.foldsUsed })
             if (d2 === 'declare') useGameStore.getState().cpuDeclare()
           }, cpuThinkTime(settings.cpuDifficulty))
         } else if (decision === 'declare') {

@@ -10,6 +10,8 @@ interface CpuContext {
   communityCards?: PlayingCard[]
   playerExchangeCount?: number
   hasExchanged?: boolean // 宣言応答時に交換済みか（2回交換を防ぐ）
+  cpuExchangeCount?: number  // playing中にCPUが交換した回数
+  playerFoldsUsed?: number   // プレイヤーのフォールド消費数（hard ブラフ判断用）
 }
 
 // フラッシュドロー（同スート3枚以上）またはストレートドロー（連続3ランク以上）の有無
@@ -32,7 +34,11 @@ function hasDrawPotential(holeCards: PlayingCard[], communityCards: PlayingCard[
 }
 
 export function cpuDecideAction(ctx: CpuContext): CpuDecision {
-  const { cpuState, playerHasDeclared, settings, communityCards = [], playerExchangeCount = 0, hasExchanged = false } = ctx
+  const {
+    cpuState, playerHasDeclared, settings,
+    communityCards = [], playerExchangeCount = 0, hasExchanged = false,
+    cpuExchangeCount = 0, playerFoldsUsed = 0,
+  } = ctx
   const difficulty = settings.cpuDifficulty
 
   const allCards = [...cpuState.hand, ...communityCards]
@@ -43,7 +49,7 @@ export function cpuDecideAction(ctx: CpuContext): CpuDecision {
     return decideFoldOrAccept(value, difficulty, cpuState.foldsUsed, settings.maxFolds, hasExchanged)
   }
 
-  return decideTurnAction(value, difficulty, cpuState, settings, communityCards, playerExchangeCount)
+  return decideTurnAction(value, difficulty, cpuState, settings, communityCards, playerExchangeCount, cpuExchangeCount, playerFoldsUsed)
 }
 
 function decideTurnAction(
@@ -53,43 +59,47 @@ function decideTurnAction(
   settings: GameSettings,
   communityCards: PlayingCard[],
   playerExchangeCount: number,
+  cpuExchangeCount: number,
+  playerFoldsUsed: number,
 ): CpuDecision {
   const isModeBB = settings.mode === 'B'
   const revealedCount = communityCards.length
-  const foldsLeft = settings.maxFolds - cpuState.foldsUsed
+  const playerFoldsLeft = settings.maxFolds - playerFoldsUsed
+
+  // 宣言に必要な最低役（交換回数で段階的に緩和）
+  // 0回: スリーカード以上(4+)  1回: ツーペア以上(3+)  2+回: ワンペア以上(2+)
+  const declareThreshold = cpuExchangeCount === 0 ? 4 : cpuExchangeCount === 1 ? 3 : 2
 
   switch (difficulty) {
     case 'easy': {
-      if (value >= 5) return 'declare'                               // ストレート以上：即宣言
-      if (value >= 3) return 'declare'                               // ツーペア・スリーカード：宣言
-      if (value === 2) return Math.random() < 0.5 ? 'declare' : 'exchange' // ワンペア：50/50
-      return 'exchange'                                               // ハイカード：交換
+      // ブラフなし、しきい値以上のみ宣言
+      if (value >= declareThreshold) return 'declare'
+      return 'exchange'
     }
 
     case 'normal': {
-      if (value >= 5) return 'declare'
-      if (value >= 3) return 'declare'
-      if (value === 2) return Math.random() < 0.7 ? 'declare' : 'exchange'
-      // ハイカード
+      if (value >= declareThreshold) return 'declare'
+      // ワンペア：1回交換後は60%で宣言
+      if (value === 2 && cpuExchangeCount >= 1) return Math.random() < 0.60 ? 'declare' : 'exchange'
+      // ハイカード：ドロー待機
       if (isModeBB && revealedCount < 4 && hasDrawPotential(cpuState.hand, communityCards)) {
-        return 'wait' // ドロー狙いで待機
+        return 'wait'
       }
-      if (playerExchangeCount >= 2 && Math.random() < 0.25) return 'declare' // ブラフ
+      // ブラフ上限10%（交換済み かつ 相手が2回以上交換した場合のみ）
+      if (cpuExchangeCount >= 1 && playerExchangeCount >= 2 && Math.random() < 0.10) return 'declare'
       return 'exchange'
     }
 
     case 'hard': {
-      if (value >= 5) return 'declare'
-      if (value >= 3) return 'declare'
-      if (value === 2) return Math.random() < 0.8 ? 'declare' : 'exchange'
-      // ハイカード
+      if (value >= declareThreshold) return 'declare'
+      // ワンペア：1回交換後は75%で宣言
+      if (value === 2 && cpuExchangeCount >= 1) return Math.random() < 0.75 ? 'declare' : 'exchange'
+      // ハイカード：ドロー待機
       if (isModeBB && revealedCount < 3 && hasDrawPotential(cpuState.hand, communityCards)) {
-        return 'wait' // 序盤はドロー待ち
+        return 'wait'
       }
-      // 相手のフォールド残数が少ないほど積極的にブラフ
-      const bluffChance = 0.2 + (foldsLeft / settings.maxFolds) * 0.3
-      if (Math.random() < bluffChance) return 'declare'
-      if (playerExchangeCount >= 1 && Math.random() < 0.3) return 'declare'
+      // ブラフ上限20%：交換済み かつ 相手のフォールド残数が1以下の時のみ
+      if (cpuExchangeCount >= 1 && playerFoldsLeft <= 1 && Math.random() < 0.20) return 'declare'
       return 'exchange'
     }
   }

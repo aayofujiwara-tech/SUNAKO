@@ -16,6 +16,7 @@ export function GameModeB() {
   const store = useGameStore()
   const cpuTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const communityTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const cpuExchangeCountRef = useRef(0)
 
   const clearTimers = () => {
     if (cpuTimerRef.current) clearTimeout(cpuTimerRef.current)
@@ -33,12 +34,18 @@ export function GameModeB() {
         playerHasDeclared: false,
         settings,
         communityCards: communityCards.slice(0, revealedCommunityCount),
+        cpuExchangeCount: cpuExchangeCountRef.current,
+        playerFoldsUsed: useGameStore.getState().player.foldsUsed,
       })
       cpuTimerRef.current = setTimeout(() => {
         const { phase: p } = useGameStore.getState()
         if (p !== 'playing') return
-        if (decision === 'exchange') useGameStore.getState().cpuExchange()
-        else if (decision === 'declare') useGameStore.getState().cpuDeclare()
+        if (decision === 'exchange') {
+          cpuExchangeCountRef.current++
+          useGameStore.getState().cpuExchange()
+        } else if (decision === 'declare') {
+          useGameStore.getState().cpuDeclare()
+        }
       }, cpuThinkTime(settings.cpuDifficulty))
     } else if (phase === 'player_declared') {
       const totalMs = countdownRemaining * 1000
@@ -152,7 +159,12 @@ export function GameModeB() {
   useEffect(() => {
     const { phase, settings } = store
     if (settings.matchType !== 'cpu') return
-    if (phase === 'playing' || phase === 'player_declared') runCpuTurn()
+    if (phase === 'playing') {
+      cpuExchangeCountRef.current = 0  // ラウンド開始時にリセット
+      runCpuTurn()
+    } else if (phase === 'player_declared') {
+      runCpuTurn()
+    }
     return () => { if (cpuTimerRef.current) clearTimeout(cpuTimerRef.current) }
   }, [store.phase, runCpuTurn])
 
