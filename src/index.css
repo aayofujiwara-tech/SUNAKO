@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --color-casino-bg: #0d2b1a;
+  --color-casino-surface: #1a3d28;
+  --color-casino-card-back: #1a472a;
+  --color-casino-gold: #f5c842;
+  --color-casino-dark: #0a1a0f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-casino-bg);
+  color: white;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-casino-gold);
+  cursor: pointer;
+}

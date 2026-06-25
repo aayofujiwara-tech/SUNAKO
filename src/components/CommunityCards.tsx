@@ -1,0 +1,39 @@
+import { PlayingCard, CardBack } from './PlayingCard'
+import type { PlayingCard as PlayingCardType } from '@/types'
+import { motion } from 'framer-motion'
+
+interface Props {
+  cards: PlayingCardType[]
+  revealedCount: number
+  highlightCards?: PlayingCardType[]
+}
+
+export function CommunityCards({ cards, revealedCount, highlightCards = [] }: Props) {
+  const highlightIds = new Set(highlightCards.map((c) => c.id))
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <p className="text-xs text-white/60 uppercase tracking-wider">コミュニティカード</p>
+      <div className="flex gap-2 justify-center">
+        {Array.from({ length: 5 }, (_, i) => {
+          const card = cards[i]
+          const revealed = i < revealedCount
+          return (
+            <motion.div
+              key={i}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: i * 0.1 }}
+            >
+              {revealed && card ? (
+                <PlayingCard card={card} highlighted={highlightIds.has(card.id)} />
+              ) : (
+                <CardBack />
+              )}
+            </motion.div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
