@@ -78,7 +78,7 @@ export function Home() {
   }
 
   return (
-    <div className="min-h-dvh bg-casino-bg text-white flex flex-col items-center justify-center p-6 gap-8">
+    <div className="h-dvh overflow-y-auto bg-casino-bg text-white flex flex-col items-center justify-center p-6 gap-8">
       {/* Title */}
       <div className="text-center">
         <h1 className="text-6xl font-bold tracking-tight text-casino-gold">SUNAKO</h1>

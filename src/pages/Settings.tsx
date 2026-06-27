@@ -50,7 +50,7 @@ export function Settings() {
   const { settings, setSettings } = useGameStore()
 
   return (
-    <div className="min-h-dvh bg-casino-bg text-white flex flex-col">
+    <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col">
       <header className="flex items-center gap-3 p-4 border-b border-white/10">
         <button onClick={() => navigate('/')} className="text-white/60 hover:text-white transition-colors">
           <ArrowLeft size={20} />
@@ -58,7 +58,7 @@ export function Settings() {
         <h1 className="text-lg font-semibold">カスタムパラメータ</h1>
       </header>
 
-      <main className="flex-1 p-6 flex flex-col gap-8 max-w-md mx-auto w-full">
+      <main className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-8 max-w-md mx-auto w-full">
         <section className="flex flex-col gap-5">
           <h2 className="text-xs text-white/40 uppercase tracking-wider">両モード共通</h2>
 

@@ -190,7 +190,7 @@ export function GameModeB() {
   const highlightCards = showHand ? (store.player.handResult?.bestFive ?? []) : []
 
   return (
-    <div className="min-h-dvh bg-casino-bg text-white flex flex-col max-w-md mx-auto">
+    <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col max-w-md mx-auto">
       <div className="flex-none px-4 pt-3">
         <button onClick={() => navigate('/')} className="text-xs text-white/40 hover:text-white/70 transition-colors">
           ← タイトル
@@ -203,12 +203,14 @@ export function GameModeB() {
           {store.settings.matchType === 'cpu' ? `CPU (${store.settings.cpuDifficulty})` : '相手'}
         </p>
         <CardHand cards={store.opponent.hand} faceDown small isShuffling={store.opponent.isExchanging} label="手札 2枚" />
-        {store.opponent.isExchanging && (
-          <p className="text-xs text-white/40 animate-pulse">交換中…</p>
-        )}
-        {store.phase === 'opponent_declared' && (
-          <p className="text-sm font-semibold text-red-400 animate-pulse">⚠ 宣言！</p>
-        )}
+        {/* CLS防止：高さを常に確保し、内容だけ切り替える */}
+        <p className="min-h-6 flex items-center justify-center text-center">
+          {store.opponent.isExchanging
+            ? <span className="text-xs text-white/40 animate-pulse">交換中…</span>
+            : store.phase === 'opponent_declared'
+            ? <span className="text-sm font-semibold text-red-400 animate-pulse">⚠ 宣言！</span>
+            : null}
+        </p>
       </section>
 
       {/* コミュニティカード + スコア */}
@@ -229,19 +231,22 @@ export function GameModeB() {
       </section>
 
       {/* 自分エリア */}
-      <section className="flex-1 p-4 flex flex-col items-center gap-3">
-        <StatusBanner phase={store.phase} />
-        <HandDisplay handResult={store.player.handResult} visible={showHand} />
+      <section className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col items-center gap-2">
+        {/* CLS防止：固定高さのコンテナで領域を事前確保 */}
+        <div className="h-10 w-full flex items-center justify-center">
+          <StatusBanner phase={store.phase} />
+        </div>
+        <div className="h-8 w-full flex items-center justify-center">
+          <HandDisplay handResult={store.player.handResult} visible={showHand} />
+        </div>
         <CardHand
           cards={store.player.hand}
           highlightCards={highlightCards}
           label="手札 2枚"
         />
-        {store.revealedCommunityCount > 0 && (
-          <p className="text-xs text-white/40">
-            コミュニティ込みで最強5枚を自動選択中
-          </p>
-        )}
+        <p className={`text-xs text-white/40 ${store.revealedCommunityCount > 0 ? '' : 'invisible'}`}>
+          コミュニティ込みで最強5枚を自動選択中
+        </p>
       </section>
 
       {/* アクションボタン */}

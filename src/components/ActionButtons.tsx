@@ -89,11 +89,10 @@ export function ActionButtons({
         </Button>
       </div>
 
-      {isPlayerDeclared && (
-        <p className="text-center text-sm text-casino-gold animate-pulse">
-          相手の応答を待っています…
-        </p>
-      )}
+      {/* CLS防止：invisible で高さを常に確保 */}
+      <p className={`text-center text-sm text-casino-gold ${isPlayerDeclared ? 'animate-pulse' : 'invisible'}`}>
+        相手の応答を待っています…
+      </p>
     </div>
   )
 }

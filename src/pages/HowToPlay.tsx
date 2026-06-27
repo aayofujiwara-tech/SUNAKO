@@ -22,14 +22,14 @@ export function HowToPlay() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-dvh bg-casino-bg text-white flex flex-col">
+    <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col">
       <div className="flex-none px-4 pt-4 pb-2">
         <button onClick={() => navigate('/')} className="text-xs text-white/40 hover:text-white/70 transition-colors">
           ← タイトル
         </button>
       </div>
 
-      <div className="flex-1 px-5 pb-8 flex flex-col gap-6 max-w-lg mx-auto w-full">
+      <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-8 flex flex-col gap-6 max-w-lg mx-auto w-full">
         <h1 className="text-2xl font-bold text-casino-gold">遊び方</h1>
 
         <Section title="ゲーム概要">
