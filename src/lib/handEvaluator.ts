@@ -19,16 +19,20 @@ function evaluateFive(cards: PlayingCard[]): HandResult {
   const rankCounts = countRanks(ranks)
   const counts = Object.values(rankCounts).sort((a, b) => b - a)
 
+  // A-2-3-4-5 wheel: Ace acts as 1, so effective high card is 5, not 14
+  const isWheel = ranks[0] === 14 && ranks[1] === 5
+  const straightTiebreakers = isWheel ? [5, 4, 3, 2, 1] : ranks
+
   if (isFlush && isStraight) {
-    if (ranks[0] === 14 && ranks[1] === 13) {
+    if (!isWheel && ranks[0] === 14 && ranks[1] === 13) {
       return makeResult('ロイヤルフラッシュ', 10, sorted, ranks)
     }
-    return makeResult('ストレートフラッシュ', 9, sorted, ranks)
+    return makeResult('ストレートフラッシュ', 9, sorted, straightTiebreakers)
   }
   if (counts[0] === 4) return makeResult('フォーオブアカインド', 8, sorted, quadsOrder(rankCounts))
   if (counts[0] === 3 && counts[1] === 2) return makeResult('フルハウス', 7, sorted, fullHouseOrder(rankCounts))
   if (isFlush) return makeResult('フラッシュ', 6, sorted, ranks)
-  if (isStraight) return makeResult('ストレート', 5, sorted, ranks)
+  if (isStraight) return makeResult('ストレート', 5, sorted, straightTiebreakers)
   if (counts[0] === 3) return makeResult('スリーオブアカインド', 4, sorted, tripsOrder(rankCounts))
   if (counts[0] === 2 && counts[1] === 2) return makeResult('ツーペア', 3, sorted, twoPairOrder(rankCounts))
   if (counts[0] === 2) return makeResult('ワンペア', 2, sorted, onePairOrder(rankCounts))
