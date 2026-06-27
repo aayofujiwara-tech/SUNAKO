@@ -42,7 +42,7 @@ export function PlayingCard({ card, faceDown = false, highlighted = false, small
       transition={{ duration: 0.25 }}
       className={cn(
         base,
-        'flex flex-col justify-between p-1 bg-white border border-gray-200 shadow-md select-none',
+        'flex flex-col p-1 bg-white border border-gray-200 shadow-md select-none',
         red ? 'text-red-600' : 'text-gray-900',
         highlighted && 'ring-2 ring-casino-gold ring-offset-1',
         className,
@@ -52,12 +52,8 @@ export function PlayingCard({ card, faceDown = false, highlighted = false, small
         <span className="font-bold">{rankLabel(card.rank)}</span>
         <span>{suitSymbol(card.suit)}</span>
       </div>
-      <div className="flex items-center justify-center text-2xl leading-none">
+      <div className="flex-1 flex items-center justify-center text-2xl leading-none">
         {suitSymbol(card.suit)}
-      </div>
-      <div className="flex flex-col items-end leading-none rotate-180">
-        <span className="font-bold">{rankLabel(card.rank)}</span>
-        <span>{suitSymbol(card.suit)}</span>
       </div>
     </motion.div>
   )
