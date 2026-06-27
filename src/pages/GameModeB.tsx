@@ -185,7 +185,7 @@ export function GameModeB() {
   }
 
   const showResult = store.phase === 'round_result' || store.phase === 'game_over'
-  const showHand = store.phase === 'playing' || store.phase === 'player_declared'
+  const showHand = store.phase === 'player_declared' || store.phase === 'opponent_declared' || store.phase === 'round_result' || store.phase === 'game_over'
 
   const highlightCards = showHand ? (store.player.handResult?.bestFive ?? []) : []
 

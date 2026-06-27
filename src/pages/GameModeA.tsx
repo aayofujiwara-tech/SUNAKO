@@ -161,7 +161,7 @@ export function GameModeA() {
   }
 
   const showResult = store.phase === 'round_result' || store.phase === 'game_over'
-  const showHand = store.phase === 'playing' || store.phase === 'player_declared'
+  const showHand = store.phase === 'player_declared' || store.phase === 'opponent_declared' || store.phase === 'round_result' || store.phase === 'game_over'
 
   return (
     <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col max-w-md mx-auto">
@@ -181,6 +181,7 @@ export function GameModeA() {
         <CardHand
           cards={store.opponent.hand}
           faceDown
+          nowrap
           isShuffling={store.opponent.isExchanging}
           label={`手札 ${store.opponent.hand.length}枚`}
         />
@@ -217,6 +218,7 @@ export function GameModeA() {
         </div>
         <CardHand
           cards={store.player.hand}
+          nowrap
           highlightCards={showHand ? (store.player.handResult?.bestFive ?? []) : []}
           label={`手札 ${store.player.hand.length}枚`}
         />
