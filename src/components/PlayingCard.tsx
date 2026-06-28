@@ -51,11 +51,11 @@ export function PlayingCard({ card, faceDown = false, highlighted = false, small
         className,
       )}
     >
-      <div className="flex flex-col items-start leading-none">
-        <span className="font-bold">{rankLabel(card.rank)}</span>
+      <div className={`flex flex-col items-start leading-none font-bold ${fluid ? 'text-sm sm:text-base md:text-lg' : 'text-sm'}`}>
+        <span>{rankLabel(card.rank)}</span>
         <span>{suitSymbol(card.suit)}</span>
       </div>
-      <div className={`flex-1 flex items-center justify-center leading-none ${fluid ? 'text-sm sm:text-base md:text-lg lg:text-xl' : 'text-2xl'}`}>
+      <div className={`flex-1 flex items-center justify-center leading-none font-bold ${fluid ? 'text-2xl sm:text-3xl md:text-4xl' : 'text-2xl'}`}>
         {suitSymbol(card.suit)}
       </div>
     </motion.div>

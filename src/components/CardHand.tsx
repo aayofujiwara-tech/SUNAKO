@@ -8,12 +8,19 @@ interface Props {
   highlightCards?: PlayingCardType[]
   small?: boolean
   nowrap?: boolean
+  twocard?: boolean
   label?: string
   isShuffling?: boolean
 }
 
-export function CardHand({ cards, faceDown = false, highlightCards = [], small = false, nowrap = false, label, isShuffling = false }: Props) {
+export function CardHand({ cards, faceDown = false, highlightCards = [], small = false, nowrap = false, twocard = false, label, isShuffling = false }: Props) {
   const highlightIds = new Set(highlightCards.map((c) => c.id))
+
+  const wrapperClass = nowrap
+    ? 'flex-1 min-w-8 max-w-14 sm:min-w-12 sm:max-w-20 md:min-w-16 md:max-w-28 lg:min-w-20 lg:max-w-36'
+    : twocard
+    ? 'w-16 sm:w-20 md:w-24 lg:w-28'
+    : undefined
 
   return (
     <div className={`flex flex-col items-center gap-1 ${nowrap ? 'w-full' : ''}`}>
@@ -27,22 +34,22 @@ export function CardHand({ cards, faceDown = false, highlightCards = [], small =
           faceDown ? (
             <motion.div
               key={i}
-              className={nowrap ? 'flex-1 min-w-8 max-w-14 sm:min-w-12 sm:max-w-20 md:min-w-16 md:max-w-28 lg:min-w-20 lg:max-w-36' : undefined}
+              className={wrapperClass}
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: i * 0.05 }}
             >
-              <CardBack small={small} fluid={nowrap} />
+              <CardBack small={small} fluid={nowrap || twocard} />
             </motion.div>
           ) : (
             <motion.div
               key={card.id}
-              className={nowrap ? 'flex-1 min-w-8 max-w-14 sm:min-w-12 sm:max-w-20 md:min-w-16 md:max-w-28 lg:min-w-20 lg:max-w-36' : undefined}
+              className={wrapperClass}
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: i * 0.05 }}
             >
-              <PlayingCard card={card} highlighted={highlightIds.has(card.id)} small={small} fluid={nowrap} />
+              <PlayingCard card={card} highlighted={highlightIds.has(card.id)} small={small} fluid={nowrap || twocard} />
             </motion.div>
           ),
         )}
