@@ -14,7 +14,7 @@ interface Props {
 
 export function PlayingCard({ card, faceDown = false, highlighted = false, small = false, fluid = false, className }: Props) {
   const base = fluid
-    ? 'w-full aspect-[2/3] text-[10px] rounded-sm'
+    ? 'w-full aspect-[2/3] text-[10px] sm:text-xs md:text-sm rounded-sm'
     : small
     ? 'w-10 h-14 text-xs rounded-md'
     : 'w-16 h-24 text-sm rounded-lg'
@@ -55,7 +55,7 @@ export function PlayingCard({ card, faceDown = false, highlighted = false, small
         <span className="font-bold">{rankLabel(card.rank)}</span>
         <span>{suitSymbol(card.suit)}</span>
       </div>
-      <div className={`flex-1 flex items-center justify-center leading-none ${fluid ? 'text-lg' : 'text-2xl'}`}>
+      <div className={`flex-1 flex items-center justify-center leading-none ${fluid ? 'text-sm sm:text-base md:text-lg lg:text-xl' : 'text-2xl'}`}>
         {suitSymbol(card.suit)}
       </div>
     </motion.div>

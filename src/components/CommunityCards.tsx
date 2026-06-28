@@ -23,7 +23,7 @@ export function CommunityCards({ cards, revealedCount, highlightCards = [], smal
           return (
             <motion.div
               key={i}
-              className={fluid ? 'flex-1 min-w-8 max-w-16' : undefined}
+              className={fluid ? 'flex-1 min-w-8 max-w-14 sm:min-w-12 sm:max-w-20 md:min-w-16 md:max-w-28 lg:min-w-20 lg:max-w-36' : undefined}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: i * 0.1 }}
