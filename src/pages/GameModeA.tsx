@@ -10,6 +10,10 @@ import { FoldNotification } from '@/components/FoldNotification'
 import { StatusBanner } from '@/components/StatusBanner'
 import { cpuDecideAction, cpuThinkTime } from '@/lib/cpu'
 import { CPU_EXCHANGE_ANIMATION_MS } from '@/stores/gameStore'
+import { subscribeRoom, updateRoom } from '@/lib/firebase'
+import { drawRandom, drawRandomExcluding } from '@/lib/cards'
+import { evaluateBestHand, compareHands } from '@/lib/handEvaluator'
+import type { PlayingCard, RoomState } from '@/types'
 
 export function GameModeA() {
   const navigate = useNavigate()
@@ -20,7 +24,8 @@ export function GameModeA() {
     if (cpuTimerRef.current) clearTimeout(cpuTimerRef.current)
   }
 
-  // CPU turn logic
+  const isOnline = store.settings.matchType === 'online'
+
   const runCpuTurn = useCallback((triggerPhase: string) => {
     const { opponent, settings } = useGameStore.getState()
     if (settings.matchType !== 'cpu') return
@@ -35,7 +40,6 @@ export function GameModeA() {
         if (p !== 'playing') return
         if (decision === 'exchange') {
           useGameStore.getState().cpuExchange()
-          // Wait for exchange animation to finish before re-evaluating
           const followUpDelay = Math.max(cpuThinkTime(settings.cpuDifficulty), CPU_EXCHANGE_ANIMATION_MS + 100)
           setTimeout(() => {
             const { phase: p2, settings: s2, opponent: o2, player: plr2 } = useGameStore.getState()
@@ -65,13 +69,11 @@ export function GameModeA() {
       const initialValue = opp.handResult?.value ?? 0
 
       if (initialValue >= 3) {
-        // ツーペア以上：交換なし、すぐ受ける
         cpuTimerRef.current = setTimeout(() => {
           if (useGameStore.getState().phase !== 'player_declared') return
           useGameStore.getState().cpuAccept()
         }, totalMs * 0.15)
       } else if (initialValue === 2) {
-        // ワンペア：1回交換して判断
         const ratio = settings.cpuDifficulty === 'hard' ? 0.80 : 0.70
         if (totalMs * (1 - ratio) > MIN_REMAINING_MS) {
           cpuTimerRef.current = setTimeout(() => {
@@ -83,7 +85,6 @@ export function GameModeA() {
           cpuTimerRef.current = setTimeout(() => decideNow(false), totalMs * ratio)
         }
       } else if (settings.cpuDifficulty === 'easy') {
-        // ハイカード easy：1回だけ70%で交換
         if (totalMs * 0.30 > MIN_REMAINING_MS) {
           cpuTimerRef.current = setTimeout(() => {
             if (useGameStore.getState().phase !== 'player_declared') return
@@ -94,7 +95,6 @@ export function GameModeA() {
           cpuTimerRef.current = setTimeout(() => decideNow(false), totalMs * 0.20)
         }
       } else if (settings.cpuDifficulty === 'normal') {
-        // ハイカード normal：最大2回（30%・60%）
         const startTime = Date.now()
         cpuTimerRef.current = setTimeout(() => {
           if (useGameStore.getState().phase !== 'player_declared') return
@@ -112,7 +112,6 @@ export function GameModeA() {
           }, ANIM_MS)
         }, totalMs * 0.30)
       } else {
-        // ハイカード hard：ギリギリまで連続交換
         const startTime = Date.now()
         const tryExchange = (count: number) => {
           if (useGameStore.getState().phase !== 'player_declared') return
@@ -135,14 +134,176 @@ export function GameModeA() {
     }
   }, [])
 
-  // Start game on mount
+  // ---- Online action handlers ----
+
+  const onlineExchange = async () => {
+    const { roomCode, isHost, player } = useGameStore.getState()
+    const newHand = drawRandom(7)
+    const handResult = evaluateBestHand(newHand)
+    const myKey = isHost ? 'host' : 'guest'
+    await updateRoom(roomCode!, { [myKey]: { ...player, hand: newHand, handResult, isExchanging: false } })
+  }
+
+  const onlineDeclare = async () => {
+    const { roomCode, isHost, player } = useGameStore.getState()
+    const fbPhase = isHost ? 'player_declared' : 'opponent_declared'
+    const myKey = isHost ? 'host' : 'guest'
+    await updateRoom(roomCode!, {
+      phase: fbPhase,
+      [myKey]: { ...player, hasDeclared: true },
+      countdownStartAt: Date.now(),
+    })
+  }
+
+  const onlineAccept = async () => {
+    const { roomCode, isHost, player, opponent, settings } = useGameStore.getState()
+    const playerResult = evaluateBestHand(player.hand)
+    const opponentResult = evaluateBestHand(opponent.hand)
+    const cmp = compareHands(playerResult, opponentResult)
+    const localWinner = cmp > 0 ? 'player' : cmp < 0 ? 'opponent' : 'draw'
+    const newPlayerScore = player.score + (localWinner === 'player' ? 1 : 0)
+    const newOpponentScore = opponent.score + (localWinner === 'opponent' ? 1 : 0)
+    const fbWinner: 'host' | 'guest' | 'draw' = localWinner === 'draw' ? 'draw'
+      : localWinner === 'player' ? (isHost ? 'host' : 'guest')
+      : (isHost ? 'guest' : 'host')
+    const newHostScore = isHost ? newPlayerScore : newOpponentScore
+    const newGuestScore = isHost ? newOpponentScore : newPlayerScore
+    const fbGameWinner: 'host' | 'guest' | null =
+      newHostScore >= settings.targetScore ? 'host'
+      : newGuestScore >= settings.targetScore ? 'guest'
+      : null
+    await updateRoom(roomCode!, {
+      phase: fbGameWinner ? 'game_over' : 'round_result',
+      host: isHost ? { ...player, score: newPlayerScore, handResult: playerResult } : { ...opponent, score: newOpponentScore, handResult: opponentResult },
+      guest: isHost ? { ...opponent, score: newOpponentScore, handResult: opponentResult } : { ...player, score: newPlayerScore, handResult: playerResult },
+      roundWinner: fbWinner,
+      gameWinner: fbGameWinner,
+      foldedBy: null,
+      countdownStartAt: null,
+    })
+  }
+
+  const onlineFold = async () => {
+    const { roomCode, isHost, player, opponent, settings } = useGameStore.getState()
+    const newFoldsUsed = player.foldsUsed + 1
+    const outOfFolds = newFoldsUsed >= settings.maxFolds
+    const fbFoldedBy: 'host' | 'guest' = isHost ? 'host' : 'guest'
+    const myKey = isHost ? 'host' : 'guest'
+    const theirKey = isHost ? 'guest' : 'host'
+    const updatedMe = { ...player, foldsUsed: newFoldsUsed }
+    if (!outOfFolds) {
+      await updateRoom(roomCode!, { phase: 'fold_result', foldedBy: fbFoldedBy, [myKey]: updatedMe, countdownStartAt: null })
+      return
+    }
+    const newOpponentScore = opponent.score + 1
+    const fbGameWinner: 'host' | 'guest' | null = isHost
+      ? (newOpponentScore >= settings.targetScore ? 'guest' : null)
+      : (newOpponentScore >= settings.targetScore ? 'host' : null)
+    await updateRoom(roomCode!, {
+      phase: 'fold_result',
+      foldedBy: fbFoldedBy,
+      roundWinner: isHost ? 'guest' : 'host',
+      gameWinner: fbGameWinner,
+      [myKey]: updatedMe,
+      [theirKey]: { ...opponent, score: newOpponentScore },
+      countdownStartAt: null,
+    })
+  }
+
+  // ホストのみ次の手を配る
+  const onlineDealNext = async (resetFolds: boolean) => {
+    const { roomCode, isHost, player, opponent } = useGameStore.getState()
+    if (!isHost) return
+    const newHostHand = drawRandom(7)
+    const usedIds = new Set(newHostHand.map((c: PlayingCard) => c.id))
+    const newGuestHand = drawRandomExcluding(7, usedIds)
+    const hostPlayer = isHost ? player : opponent
+    const guestPlayer = isHost ? opponent : player
+    await updateRoom(roomCode!, {
+      phase: 'playing',
+      host: { ...hostPlayer, hand: newHostHand, handResult: evaluateBestHand(newHostHand), hasDeclared: false, isExchanging: false, ...(resetFolds ? { foldsUsed: 0 } : {}) },
+      guest: { ...guestPlayer, hand: newGuestHand, handResult: evaluateBestHand(newGuestHand), hasDeclared: false, isExchanging: false, ...(resetFolds ? { foldsUsed: 0 } : {}) },
+      communityCards: [],
+      revealedCommunityCount: 0,
+      roundWinner: null,
+      foldedBy: null,
+      countdownStartAt: null,
+    })
+  }
+
+  const onlineContinueFold = async () => {
+    const { gameWinner, foldedBy, player, opponent, settings } = useGameStore.getState()
+    if (!useGameStore.getState().isHost) return
+    if (gameWinner) {
+      await updateRoom(useGameStore.getState().roomCode!, { phase: 'game_over' })
+      return
+    }
+    const folderFoldsUsed = foldedBy === 'player' ? player.foldsUsed : opponent.foldsUsed
+    await onlineDealNext(folderFoldsUsed >= settings.maxFolds)
+  }
+
+  // Firebase subscription → local store を同期
+  function applyRoomState(room: RoomState) {
+    const ih = useGameStore.getState().isHost
+    const myState = ih ? room.host : room.guest
+    const theirState = ih ? room.guest : room.host
+
+    let localPhase = room.phase
+    if (!ih) {
+      if (room.phase === 'player_declared') localPhase = 'opponent_declared'
+      else if (room.phase === 'opponent_declared') localPhase = 'player_declared'
+    }
+
+    const mapW = (w: 'host' | 'guest' | 'draw' | null) => {
+      if (!w) return null
+      if (w === 'draw') return 'draw' as const
+      return w === (ih ? 'host' : 'guest') ? 'player' as const : 'opponent' as const
+    }
+    const mapF = (f: 'host' | 'guest' | null) => {
+      if (!f) return null
+      return f === (ih ? 'host' : 'guest') ? 'player' as const : 'opponent' as const
+    }
+
+    let countdownRemaining = useGameStore.getState().countdownRemaining
+    if (room.countdownStartAt && (localPhase === 'player_declared' || localPhase === 'opponent_declared')) {
+      const elapsed = Math.floor((Date.now() - room.countdownStartAt) / 1000)
+      countdownRemaining = Math.max(0, room.settings.countdownSeconds - elapsed)
+    } else if (localPhase === 'playing') {
+      countdownRemaining = 0
+    }
+
+    useGameStore.getState().applyRemoteState({
+      phase: localPhase,
+      player: myState,
+      opponent: theirState,
+      communityCards: room.communityCards ?? [],
+      revealedCommunityCount: room.revealedCommunityCount ?? 0,
+      roundWinner: mapW(room.roundWinner),
+      gameWinner: mapW(room.gameWinner) as 'player' | 'opponent' | null,
+      foldedBy: mapF(room.foldedBy ?? null),
+      settings: room.settings,
+      countdownRemaining,
+    })
+  }
+
+  // マウント時：オンライン→Firebase購読、CPU→ゲーム開始
   useEffect(() => {
-    store.setSettings({ mode: 'A' })
-    store.startGame()
+    useGameStore.getState().setSettings({ mode: 'A' })
+    const { settings, roomCode } = useGameStore.getState()
+    if (settings.matchType !== 'online') {
+      useGameStore.getState().startGame()
+      return
+    }
+    if (!roomCode) { navigate('/'); return }
+    const unsub = subscribeRoom(roomCode, (room) => {
+      if (!room) { navigate('/'); return }
+      applyRoomState(room)
+    })
+    return unsub
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Trigger CPU after phase changes
+  // CPU フェーズ変化に反応
   useEffect(() => {
     const { phase, settings } = store
     if (settings.matchType !== 'cpu') return
@@ -153,10 +314,12 @@ export function GameModeA() {
   }, [store.phase, runCpuTurn])
 
   const handleNext = () => {
-    if (store.gameWinner) {
-      navigate('/')
+    if (isOnline) {
+      if (store.gameWinner) { navigate('/'); return }
+      onlineDealNext(true)
     } else {
-      store.nextRound()
+      if (store.gameWinner) navigate('/')
+      else store.nextRound()
     }
   }
 
@@ -185,7 +348,6 @@ export function GameModeA() {
           isShuffling={store.opponent.isExchanging}
           label={`手札 ${store.opponent.hand.length}枚`}
         />
-        {/* CLS防止：高さを常に確保し、内容だけ切り替える */}
         <p className="min-h-6 flex items-center justify-center text-center">
           {store.opponent.isExchanging
             ? <span className="text-xs text-white/40 animate-pulse">交換中…</span>
@@ -209,7 +371,6 @@ export function GameModeA() {
 
       {/* 自分エリア */}
       <section className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col items-center gap-2">
-        {/* CLS防止：固定高さのコンテナで領域を事前確保 */}
         <div className="h-10 w-full flex items-center justify-center">
           <StatusBanner phase={store.phase} />
         </div>
@@ -230,10 +391,10 @@ export function GameModeA() {
           phase={store.phase}
           playerFoldsUsed={store.player.foldsUsed}
           maxFolds={store.settings.maxFolds}
-          onExchange={store.playerExchange}
-          onDeclare={store.playerDeclare}
-          onAccept={store.playerAccept}
-          onFold={store.playerFold}
+          onExchange={isOnline ? onlineExchange : store.playerExchange}
+          onDeclare={isOnline ? onlineDeclare : store.playerDeclare}
+          onAccept={isOnline ? onlineAccept : store.playerAccept}
+          onFold={isOnline ? onlineFold : store.playerFold}
           disabled={store.phase === 'showdown' || showResult}
         />
       </section>
@@ -243,11 +404,10 @@ export function GameModeA() {
           foldedBy={store.foldedBy}
           foldsUsed={store.foldedBy === 'player' ? store.player.foldsUsed : store.opponent.foldsUsed}
           maxFolds={store.settings.maxFolds}
-          onClose={store.continueFold}
+          onClose={isOnline ? onlineContinueFold : store.continueFold}
         />
       )}
 
-      {/* ラウンド結果 */}
       {showResult && (
         <RoundResult
           roundWinner={store.roundWinner}

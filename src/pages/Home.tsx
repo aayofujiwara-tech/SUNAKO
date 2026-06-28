@@ -1,10 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore } from '@/stores/gameStore'
 import { Button } from '@/components/ui/button'
-import { isFirebaseConfigured } from '@/lib/firebase'
+import { isFirebaseConfigured, createRoom, getRoom, subscribeRoom, joinRoomAsGuest } from '@/lib/firebase'
 import { generateRoomCode } from '@/lib/utils'
-import { createRoom, getRoom } from '@/lib/firebase'
 import type { GameMode, CpuDifficulty } from '@/types'
 import { drawRandom, drawRandomExcluding } from '@/lib/cards'
 import { evaluateBestHand } from '@/lib/handEvaluator'
@@ -19,6 +18,18 @@ export function Home() {
   const [isLoading, setIsLoading] = useState(false)
 
   const firebaseOk = isFirebaseConfigured()
+
+  // ホスト：ゲスト参加を検知して自動遷移
+  useEffect(() => {
+    if (!createdCode || !firebaseOk) return
+    const unsub = subscribeRoom(createdCode, (room) => {
+      if (room?.guestId) {
+        const mode = room.settings.mode
+        navigate(mode === 'A' ? '/game/a' : '/game/b')
+      }
+    })
+    return unsub
+  }, [createdCode, firebaseOk, navigate])
 
   function startCpuGame(mode: GameMode) {
     setSettings({ mode, matchType: 'cpu' })
@@ -47,6 +58,7 @@ export function Home() {
         communityCards,
         revealedCommunityCount: 0,
         countdownStartAt: null,
+        foldedBy: null,
         roundWinner: null,
         gameWinner: null,
         round: 1,
@@ -76,6 +88,7 @@ export function Home() {
         setJoiningError('ルームが見つかりません')
         return
       }
+      await joinRoomAsGuest(code, code + '-guest')
       setSettings({ mode: room.settings.mode, matchType: 'online' })
       setRoomCode(code)
       setIsHost(false)

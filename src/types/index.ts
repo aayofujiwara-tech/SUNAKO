@@ -86,6 +86,7 @@ export interface RoomState {
   communityCards: PlayingCard[]
   revealedCommunityCount: number
   countdownStartAt: number | null
+  foldedBy: 'host' | 'guest' | null
   roundWinner: 'host' | 'guest' | 'draw' | null
   gameWinner: 'host' | 'guest' | null
   round: number

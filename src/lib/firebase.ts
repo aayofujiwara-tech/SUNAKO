@@ -74,6 +74,10 @@ export async function updateRoom(roomCode: string, partial: Partial<RoomState>):
   await update(roomRef(roomCode), partial)
 }
 
+export async function joinRoomAsGuest(roomCode: string, guestId: string): Promise<void> {
+  await update(roomRef(roomCode), { guestId })
+}
+
 export function subscribeRoom(
   roomCode: string,
   cb: (state: RoomState | null) => void,

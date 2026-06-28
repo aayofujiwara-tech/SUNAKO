@@ -370,11 +370,15 @@ export const useGameStore = create<Store>()((set, get) => ({
 
     if (next <= 0 && st.phase === 'player_declared') {
       set({ countdownRemaining: 0 })
-      get().cpuAccept()
+      if (st.settings.matchType !== 'online') get().cpuAccept()
       return
     }
 
     if (next <= 0 && st.phase === 'opponent_declared') {
+      if (st.settings.matchType === 'online') {
+        set({ countdownRemaining: 0 })
+        return
+      }
       const newFoldsUsed = st.player.foldsUsed + 1
       const outOfFolds = newFoldsUsed >= st.settings.maxFolds
 
