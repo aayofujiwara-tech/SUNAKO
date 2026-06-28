@@ -397,19 +397,19 @@ export function GameModeB() {
 
   return (
     <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col max-w-md mx-auto">
-      <div className="flex-none px-4 pt-3">
+      <div className="flex-none px-4 pt-2 pb-1">
         <button onClick={() => navigate('/')} className="text-xs text-white/40 hover:text-white/70 transition-colors">
           ← タイトル
         </button>
       </div>
 
       {/* 相手エリア */}
-      <section className="flex-none p-4 flex flex-col items-center gap-2 border-b border-white/10">
+      <section className="flex-none px-4 py-2 flex flex-col items-center gap-1 border-b border-white/10">
         <p className="text-xs text-white/50 uppercase tracking-wider">
           {store.settings.matchType === 'cpu' ? `CPU (${store.settings.cpuDifficulty})` : '相手'}
         </p>
-        <CardHand cards={store.opponent.hand} faceDown small isShuffling={store.opponent.isExchanging} label="手札 2枚" />
-        <p className="min-h-6 flex items-center justify-center text-center">
+        <CardHand cards={store.opponent.hand} faceDown small isShuffling={store.opponent.isExchanging} />
+        <p className="min-h-5 flex items-center justify-center text-center">
           {store.opponent.isExchanging
             ? <span className="text-xs text-white/40 animate-pulse">交換中…</span>
             : store.phase === 'opponent_declared'
@@ -418,14 +418,18 @@ export function GameModeB() {
         </p>
       </section>
 
-      {/* コミュニティカード + スコア */}
-      <section className="flex-none p-3 flex flex-col items-center gap-3">
+      {/* コミュニティカード：残スペースを占有して縮小可能 */}
+      <section className="flex-1 min-h-0 overflow-hidden px-4 py-2 flex items-center justify-center">
         <CommunityCards
           cards={store.communityCards}
           revealedCount={store.revealedCommunityCount}
           highlightCards={highlightCards}
-          small
+          fluid
         />
+      </section>
+
+      {/* スコア */}
+      <section className="flex-none px-4 py-1.5 flex justify-center">
         <ScorePanel
           playerScore={store.player.score}
           opponentScore={store.opponent.score}
@@ -436,18 +440,18 @@ export function GameModeB() {
         />
       </section>
 
-      {/* 自分エリア */}
-      <section className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col items-center gap-2">
-        <div className="h-10 w-full flex items-center justify-center">
+      {/* 自分エリア：flex-none で常に画面内に収める */}
+      <section className="flex-none px-4 py-2 flex flex-col items-center gap-1 border-t border-white/10">
+        <div className="w-full flex items-center justify-center">
           <StatusBanner phase={store.phase} />
         </div>
-        <div className="h-8 w-full flex items-center justify-center">
+        <div className="w-full flex items-center justify-center">
           <HandDisplay handResult={store.player.handResult} visible={showHand} />
         </div>
         <CardHand
           cards={store.player.hand}
+          small
           highlightCards={highlightCards}
-          label="手札 2枚"
         />
         <p className={`text-xs text-white/40 ${store.revealedCommunityCount > 0 ? '' : 'invisible'}`}>
           コミュニティ込みで最強5枚を自動選択中

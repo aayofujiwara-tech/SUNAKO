@@ -27,7 +27,7 @@ export function CardHand({ cards, faceDown = false, highlightCards = [], small =
           faceDown ? (
             <motion.div
               key={i}
-              className={nowrap ? 'flex-1 min-w-0' : undefined}
+              className={nowrap ? 'flex-1 min-w-8 max-w-16' : undefined}
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: i * 0.05 }}
@@ -37,7 +37,7 @@ export function CardHand({ cards, faceDown = false, highlightCards = [], small =
           ) : (
             <motion.div
               key={card.id}
-              className={nowrap ? 'flex-1 min-w-0' : undefined}
+              className={nowrap ? 'flex-1 min-w-8 max-w-16' : undefined}
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: i * 0.05 }}
