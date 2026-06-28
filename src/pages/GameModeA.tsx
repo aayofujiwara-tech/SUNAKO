@@ -324,7 +324,7 @@ export function GameModeA() {
   }
 
   const showResult = store.phase === 'round_result' || store.phase === 'game_over'
-  const showHand = store.phase === 'player_declared' || store.phase === 'opponent_declared' || store.phase === 'round_result' || store.phase === 'game_over'
+  const showHand = store.phase === 'opponent_declared' || store.phase === 'round_result' || store.phase === 'game_over'
 
   return (
     <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col max-w-md mx-auto">

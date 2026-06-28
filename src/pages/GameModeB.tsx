@@ -391,7 +391,7 @@ export function GameModeB() {
   }
 
   const showResult = store.phase === 'round_result' || store.phase === 'game_over'
-  const showHand = store.phase === 'player_declared' || store.phase === 'opponent_declared' || store.phase === 'round_result' || store.phase === 'game_over'
+  const showHand = store.phase === 'opponent_declared' || store.phase === 'round_result' || store.phase === 'game_over'
 
   const highlightCards = showHand ? (store.player.handResult?.bestFive ?? []) : []
 
@@ -424,6 +424,7 @@ export function GameModeB() {
           cards={store.communityCards}
           revealedCount={store.revealedCommunityCount}
           highlightCards={highlightCards}
+          small
         />
         <ScorePanel
           playerScore={store.player.score}
