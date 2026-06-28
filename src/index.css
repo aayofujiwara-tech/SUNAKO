@@ -12,15 +12,19 @@
   box-sizing: border-box;
 }
 
-html, body {
+html {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
 }
 
+body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
 #root {
   height: 100%;
-  overflow: hidden;
 }
 
 body {

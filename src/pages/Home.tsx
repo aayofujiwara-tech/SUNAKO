@@ -28,53 +28,64 @@ export function Home() {
   async function createOnlineRoom(mode: GameMode) {
     if (!firebaseOk) return
     setIsLoading(true)
-    const code = generateRoomCode()
-    const handSize = mode === 'A' ? 7 : 2
-    const communityCards = mode === 'B' ? drawRandom(5) : []
-    const communityIds = new Set(communityCards.map((c) => c.id))
-    const hostHand = communityIds.size > 0 ? drawRandomExcluding(handSize, communityIds) : drawRandom(handSize)
-    const hostIds = new Set([...communityIds, ...hostHand.map((c) => c.id)])
-    const guestHand = drawRandomExcluding(handSize, hostIds)
+    try {
+      const code = generateRoomCode()
+      const handSize = mode === 'A' ? 7 : 2
+      const communityCards = mode === 'B' ? drawRandom(5) : []
+      const communityIds = new Set(communityCards.map((c) => c.id))
+      const hostHand = communityIds.size > 0 ? drawRandomExcluding(handSize, communityIds) : drawRandom(handSize)
+      const hostIds = new Set([...communityIds, ...hostHand.map((c) => c.id)])
+      const guestHand = drawRandomExcluding(handSize, hostIds)
 
-    await createRoom(code, {
-      hostId: code + '-host',
-      guestId: null,
-      settings: { ...settings, mode, matchType: 'online' },
-      phase: 'playing',
-      host: { hand: hostHand, foldsUsed: 0, score: 0, hasDeclared: false, handResult: evaluateBestHand(hostHand), isExchanging: false },
-      guest: { hand: guestHand, foldsUsed: 0, score: 0, hasDeclared: false, handResult: evaluateBestHand(guestHand), isExchanging: false },
-      communityCards,
-      revealedCommunityCount: 0,
-      countdownStartAt: null,
-      roundWinner: null,
-      gameWinner: null,
-      round: 1,
-      createdAt: Date.now(),
-    })
+      await createRoom(code, {
+        hostId: code + '-host',
+        guestId: null,
+        settings: { ...settings, mode, matchType: 'online' },
+        phase: 'playing',
+        host: { hand: hostHand, foldsUsed: 0, score: 0, hasDeclared: false, handResult: evaluateBestHand(hostHand), isExchanging: false },
+        guest: { hand: guestHand, foldsUsed: 0, score: 0, hasDeclared: false, handResult: evaluateBestHand(guestHand), isExchanging: false },
+        communityCards,
+        revealedCommunityCount: 0,
+        countdownStartAt: null,
+        roundWinner: null,
+        gameWinner: null,
+        round: 1,
+        createdAt: Date.now(),
+      })
 
-    setSettings({ mode, matchType: 'online' })
-    setRoomCode(code)
-    setIsHost(true)
-    setCreatedCode(code)
-    setIsLoading(false)
+      setSettings({ mode, matchType: 'online' })
+      setRoomCode(code)
+      setIsHost(true)
+      setCreatedCode(code)
+    } catch (err) {
+      console.error('[createOnlineRoom]', err)
+      setJoiningError('ルーム作成に失敗しました。再度お試しください。')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   async function joinRoom() {
     if (!firebaseOk || !roomInput.trim()) return
     setIsLoading(true)
     setJoiningError('')
-    const code = roomInput.toUpperCase().trim()
-    const room = await getRoom(code)
-    if (!room) {
-      setJoiningError('ルームが見つかりません')
+    try {
+      const code = roomInput.toUpperCase().trim()
+      const room = await getRoom(code)
+      if (!room) {
+        setJoiningError('ルームが見つかりません')
+        return
+      }
+      setSettings({ mode: room.settings.mode, matchType: 'online' })
+      setRoomCode(code)
+      setIsHost(false)
+      navigate(room.settings.mode === 'A' ? '/game/a' : '/game/b')
+    } catch (err) {
+      console.error('[joinRoom]', err)
+      setJoiningError('参加に失敗しました。再度お試しください。')
+    } finally {
       setIsLoading(false)
-      return
     }
-    setSettings({ mode: room.settings.mode, matchType: 'online' })
-    setRoomCode(code)
-    setIsHost(false)
-    navigate(room.settings.mode === 'A' ? '/game/a' : '/game/b')
-    setIsLoading(false)
   }
 
   return (
@@ -151,9 +162,9 @@ export function Home() {
 
       {tab === 'online' && (
         <div className="flex flex-col gap-5 w-full max-w-sm">
-          {!firebaseOk && import.meta.env.DEV && (
+          {!firebaseOk && (
             <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-3 text-sm text-red-300">
-              Firebase未設定です。.env.local を設定してください。
+              {import.meta.env.DEV ? 'Firebase未設定です。.env.local を設定してください。' : 'オンライン機能は現在利用できません。'}
             </div>
           )}
 
