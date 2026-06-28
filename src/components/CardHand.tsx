@@ -19,7 +19,7 @@ export function CardHand({ cards, faceDown = false, highlightCards = [], small =
     <div className={`flex flex-col items-center gap-1 ${nowrap ? 'w-full' : ''}`}>
       {label && <p className="text-xs text-white/60 uppercase tracking-wider">{label}</p>}
       <motion.div
-        className={nowrap ? 'flex flex-nowrap w-full gap-1' : 'flex flex-wrap justify-center gap-1.5'}
+        className={nowrap ? 'flex flex-nowrap w-full gap-1 justify-center' : 'flex flex-wrap justify-center gap-1.5'}
         animate={{ opacity: isShuffling ? 0.15 : 1, scale: isShuffling ? 0.85 : 1 }}
         transition={{ duration: 0.2 }}
       >

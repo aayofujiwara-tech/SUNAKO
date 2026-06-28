@@ -450,7 +450,7 @@ export function GameModeB() {
         </div>
         <CardHand
           cards={store.player.hand}
-          small
+          nowrap
           highlightCards={highlightCards}
         />
         <p className={`text-xs text-white/40 ${store.revealedCommunityCount > 0 ? '' : 'invisible'}`}>
