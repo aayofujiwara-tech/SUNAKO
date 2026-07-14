@@ -141,9 +141,13 @@ export function GameModeB() {
   // ---- Online action handlers ----
 
   const onlineExchange = async () => {
-    const { roomCode, isHost, player, communityCards, revealedCommunityCount } = useGameStore.getState()
-    const communityIds = new Set(communityCards.map((c: PlayingCard) => c.id))
-    const newHand = drawRandomExcluding(2, communityIds)
+    const { roomCode, isHost, player, opponent, communityCards, revealedCommunityCount } = useGameStore.getState()
+    const usedIds = new Set([
+      ...communityCards.map((c: PlayingCard) => c.id),
+      ...player.hand.map((c: PlayingCard) => c.id),
+      ...opponent.hand.map((c: PlayingCard) => c.id),
+    ])
+    const newHand = drawRandomExcluding(2, usedIds)
     const evalCards = [...newHand, ...communityCards.slice(0, revealedCommunityCount)]
     const handResult = evaluateBestHand(evalCards)
     const myKey = isHost ? 'host' : 'guest'

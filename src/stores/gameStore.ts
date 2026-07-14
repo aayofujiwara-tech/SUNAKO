@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { GameState, GameSettings, PlayerState } from '@/types'
-import { drawRandom, drawRandomExcluding } from '@/lib/cards'
+import type { GameState, GameSettings, PlayerState, PlayingCard } from '@/types'
+import { createSharedDeck, createSharedDeckExcluding, dealCards } from '@/lib/cards'
 import { evaluateBestHand, compareHands } from '@/lib/handEvaluator'
 
 export const CPU_EXCHANGE_ANIMATION_MS = 600
@@ -26,21 +26,41 @@ function defaultPlayer(): PlayerState {
   }
 }
 
+/** 1ハンド分のデッキをシャッフルし、community → player → opponent の順で1つのデッキから配る */
 function dealNewCards(settings: GameSettings) {
   const handSize = settings.mode === 'A' ? 7 : 2
-  const communityCards = settings.mode === 'B' ? drawRandom(5) : []
-  const communityIds = new Set(communityCards.map((c) => c.id))
-  const playerHand = settings.mode === 'B'
-    ? drawRandomExcluding(handSize, communityIds)
-    : drawRandom(handSize)
-  const usedIds = new Set([...communityIds, ...playerHand.map((c) => c.id)])
-  const opponentHand = drawRandomExcluding(handSize, usedIds)
+  const deck = createSharedDeck()
+  const { dealt: communityCards, remaining: afterCommunity } =
+    settings.mode === 'B' ? dealCards(deck, 5) : { dealt: [] as PlayingCard[], remaining: deck }
+  const { dealt: playerHand, remaining: afterPlayer } = dealCards(afterCommunity, handSize)
+  const { dealt: opponentHand, remaining } = dealCards(afterPlayer, handSize)
   return {
     communityCards,
     playerHand,
     opponentHand,
     playerResult: evaluateBestHand(playerHand),
     opponentResult: evaluateBestHand(opponentHand),
+    deck: remaining,
+  }
+}
+
+/** 残りデッキから引く。足りなければ現在使用中のカード以外でリフレッシュする */
+function drawFromDeck(deck: PlayingCard[], count: number, usedIds: Set<string>) {
+  const source = deck.length >= count ? deck : createSharedDeckExcluding(usedIds)
+  return dealCards(source, count)
+}
+
+/** ショウダウン直前の重複カード検証（開発環境のみ） */
+function assertNoDuplicateCards(player: PlayerState, opponent: PlayerState, communityCards: PlayingCard[]) {
+  if (!import.meta.env.DEV) return
+  const allIds = [...player.hand, ...opponent.hand, ...communityCards].map((c) => c.id)
+  const seen = new Set<string>()
+  for (const id of allIds) {
+    if (seen.has(id)) {
+      console.error('[gameStore] 重複カードを検出しました:', id, allIds)
+      return
+    }
+    seen.add(id)
   }
 }
 
@@ -90,6 +110,7 @@ export const useGameStore = create<Store>()((set, get) => ({
   opponent: defaultPlayer(),
   communityCards: [],
   revealedCommunityCount: 0,
+  deck: [],
   countdownRemaining: 0,
   roundWinner: null,
   gameWinner: null,
@@ -115,11 +136,12 @@ export const useGameStore = create<Store>()((set, get) => ({
 
   dealRound: () => {
     const { settings, player, opponent } = get()
-    const { communityCards, playerHand, opponentHand, playerResult, opponentResult } = dealNewCards(settings)
+    const { communityCards, playerHand, opponentHand, playerResult, opponentResult, deck } = dealNewCards(settings)
     set({
       phase: 'playing',
       communityCards,
       revealedCommunityCount: 0,
+      deck,
       roundWinner: null,
       foldedBy: null,
       player: {
@@ -142,17 +164,20 @@ export const useGameStore = create<Store>()((set, get) => ({
   },
 
   playerExchange: () => {
-    const { settings, communityCards, revealedCommunityCount } = get()
+    const { settings, communityCards, revealedCommunityCount, deck, player, opponent } = get()
     const handSize = settings.mode === 'A' ? 7 : 2
-    const communityIds = new Set(communityCards.map((c) => c.id))
-    const newHand = settings.mode === 'B'
-      ? drawRandomExcluding(handSize, communityIds)
-      : drawRandom(handSize)
+    const usedIds = new Set([
+      ...communityCards.map((c) => c.id),
+      ...player.hand.map((c) => c.id),
+      ...opponent.hand.map((c) => c.id),
+    ])
+    const { dealt: newHand, remaining } = drawFromDeck(deck, handSize, usedIds)
     const evalCards = settings.mode === 'B'
       ? [...newHand, ...communityCards.slice(0, revealedCommunityCount)]
       : newHand
     const handResult = evaluateBestHand(evalCards)
     set((st) => ({
+      deck: remaining,
       player: { ...st.player, hand: newHand, handResult, isExchanging: false },
     }))
   },
@@ -199,21 +224,24 @@ export const useGameStore = create<Store>()((set, get) => ({
   cpuExchange: () => {
     set((st) => ({ opponent: { ...st.opponent, isExchanging: true } }))
     setTimeout(() => {
-      const { settings, communityCards, revealedCommunityCount, phase } = get()
+      const { settings, communityCards, revealedCommunityCount, phase, deck, player, opponent } = get()
       if (phase !== 'playing' && phase !== 'player_declared') {
         set((st) => ({ opponent: { ...st.opponent, isExchanging: false } }))
         return
       }
       const handSize = settings.mode === 'A' ? 7 : 2
-      const communityIds = new Set(communityCards.map((c) => c.id))
-      const newHand = settings.mode === 'B'
-        ? drawRandomExcluding(handSize, communityIds)
-        : drawRandom(handSize)
+      const usedIds = new Set([
+        ...communityCards.map((c) => c.id),
+        ...player.hand.map((c) => c.id),
+        ...opponent.hand.map((c) => c.id),
+      ])
+      const { dealt: newHand, remaining } = drawFromDeck(deck, handSize, usedIds)
       const evalCards = settings.mode === 'B'
         ? [...newHand, ...communityCards.slice(0, revealedCommunityCount)]
         : newHand
       const handResult = evaluateBestHand(evalCards)
       set((st) => ({
+        deck: remaining,
         opponent: { ...st.opponent, hand: newHand, handResult, isExchanging: false },
       }))
     }, CPU_EXCHANGE_ANIMATION_MS)
@@ -276,6 +304,7 @@ export const useGameStore = create<Store>()((set, get) => ({
 
   resolveShowdown: () => {
     const { player, opponent, settings, communityCards } = get()
+    assertNoDuplicateCards(player, opponent, communityCards)
 
     let playerHandResult = player.handResult
     let opponentHandResult = opponent.handResult
@@ -330,11 +359,12 @@ export const useGameStore = create<Store>()((set, get) => ({
     }
 
     // 非最終フォールド：フォールド残数を保持したまま新しい手を配る
-    const { communityCards, playerHand, opponentHand, playerResult, opponentResult } = dealNewCards(settings)
+    const { communityCards, playerHand, opponentHand, playerResult, opponentResult, deck } = dealNewCards(settings)
     set({
       phase: 'playing',
       communityCards,
       revealedCommunityCount: 0,
+      deck,
       roundWinner: null,
       foldedBy: null,
       player: { ...player, hand: playerHand, hasDeclared: false, handResult: playerResult, isExchanging: false },
@@ -351,6 +381,7 @@ export const useGameStore = create<Store>()((set, get) => ({
       phase: 'idle',
       communityCards: [],
       revealedCommunityCount: 0,
+      deck: [],
       roundWinner: null,
       gameWinner: null,
       foldedBy: null,

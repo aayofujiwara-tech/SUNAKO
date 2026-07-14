@@ -67,6 +67,7 @@ export interface GameState {
   opponent: PlayerState
   communityCards: PlayingCard[] // Mode B
   revealedCommunityCount: number // Mode B
+  deck: PlayingCard[] // 1ハンド分の共有デッキの残り
   countdownRemaining: number
   roundWinner: 'player' | 'opponent' | 'draw' | null
   gameWinner: 'player' | 'opponent' | null

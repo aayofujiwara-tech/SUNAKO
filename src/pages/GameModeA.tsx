@@ -137,8 +137,9 @@ export function GameModeA() {
   // ---- Online action handlers ----
 
   const onlineExchange = async () => {
-    const { roomCode, isHost, player } = useGameStore.getState()
-    const newHand = drawRandom(7)
+    const { roomCode, isHost, player, opponent } = useGameStore.getState()
+    const usedIds = new Set([...player.hand.map((c) => c.id), ...opponent.hand.map((c) => c.id)])
+    const newHand = drawRandomExcluding(7, usedIds)
     const handResult = evaluateBestHand(newHand)
     const myKey = isHost ? 'host' : 'guest'
     await updateRoom(roomCode!, { [myKey]: { ...player, hand: newHand, handResult, isExchanging: false } })

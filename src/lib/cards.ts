@@ -40,6 +40,16 @@ export function drawRandomExcluding(count: number, excludeIds: Set<string>): Pla
   return deck.slice(0, count)
 }
 
+/** 1ハンド分共有デッキ：52枚をシャッフルして返す */
+export function createSharedDeck(): PlayingCard[] {
+  return shuffle(createDeck())
+}
+
+/** 指定したIDセットを除外してからシャッフルした52枚デッキを返す */
+export function createSharedDeckExcluding(excludeIds: Set<string>): PlayingCard[] {
+  return createSharedDeck().filter((c) => !excludeIds.has(c.id))
+}
+
 export function rankLabel(rank: Rank): string {
   const labels: Record<number, string> = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' }
   return labels[rank] ?? String(rank)
