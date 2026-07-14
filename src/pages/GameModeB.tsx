@@ -399,8 +399,16 @@ export function GameModeB() {
 
   const highlightCards = showHand ? (store.player.handResult?.bestFive ?? []) : []
 
+  // コミュニティカードのサイズ上限（h-24 sm:h-32 md:h-40 相当）
+  const COMMUNITY_MAX_W = 'max-w-[4rem] sm:max-w-[5.33rem] md:max-w-[6.67rem]'
+  const COMMUNITY_MAX_H = 'max-h-24 sm:max-h-32 md:max-h-40'
+  // モードB 手札（2枚）のサイズ上限（h-28 sm:h-36 md:h-44 相当）
+  const HAND_MAX_W = 'max-w-[4.67rem] sm:max-w-[6rem] md:max-w-[7.33rem]'
+  const HAND_MAX_H = 'max-h-28 sm:max-h-36 md:max-h-44'
+
   return (
     <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col max-w-md mx-auto">
+      {/* 戻るボタン */}
       <div className="flex-none px-4 pt-2 pb-1">
         <button onClick={() => navigate('/')} className="text-xs text-white/40 hover:text-white/70 transition-colors">
           ← タイトル
@@ -422,18 +430,19 @@ export function GameModeB() {
         </p>
       </section>
 
-      {/* コミュニティカード：残スペースを占有して縮小可能 */}
-      <section className="flex-1 min-h-0 overflow-hidden px-4 py-2 flex items-center justify-center">
+      {/* コミュニティカードエリア：自然な高さ */}
+      <section className="flex-none px-4 py-2 flex items-center justify-center border-b border-white/10">
         <CommunityCards
           cards={store.communityCards}
           revealedCount={store.revealedCommunityCount}
           highlightCards={highlightCards}
-          fluid
+          maxWClass={COMMUNITY_MAX_W}
+          maxHClass={COMMUNITY_MAX_H}
         />
       </section>
 
-      {/* スコア */}
-      <section className="flex-none px-4 py-1.5 flex justify-center">
+      {/* スコアエリア */}
+      <section className="flex-none px-4 py-1.5 flex justify-center border-b border-white/10">
         <ScorePanel
           playerScore={store.player.score}
           opponentScore={store.opponent.score}
@@ -444,25 +453,28 @@ export function GameModeB() {
         />
       </section>
 
-      {/* 自分エリア：flex-none で常に画面内に収める */}
-      <section className="flex-none px-4 py-2 flex flex-col items-center gap-1 border-t border-white/10">
-        <div className="w-full flex items-center justify-center">
+      {/* 自分手札エリア：残スペースを占有 */}
+      <section className="flex-1 min-h-0 overflow-hidden px-4 py-2 flex flex-col items-center justify-center gap-1">
+        <div className="flex-none w-full flex items-center justify-center">
           <StatusBanner phase={store.phase} />
         </div>
-        <div className="w-full flex items-center justify-center">
+        <div className="flex-none w-full flex items-center justify-center">
           <HandDisplay handResult={store.player.handResult} visible={showHand} />
         </div>
-        <CardHand
-          cards={store.player.hand}
-          twocard
-          highlightCards={highlightCards}
-        />
-        <p className={`text-xs text-white/40 ${store.revealedCommunityCount > 0 ? '' : 'invisible'}`}>
+        <div className="flex-none w-full flex items-center justify-center">
+          <CardHand
+            cards={store.player.hand}
+            maxWClass={HAND_MAX_W}
+            maxHClass={HAND_MAX_H}
+            highlightCards={highlightCards}
+          />
+        </div>
+        <p className={`flex-none text-xs text-white/40 ${store.revealedCommunityCount > 0 ? '' : 'invisible'}`}>
           コミュニティ込みで最強5枚を自動選択中
         </p>
       </section>
 
-      {/* アクションボタン */}
+      {/* プログレスバー + アクションボタン */}
       <section className="flex-none p-4 border-t border-white/10">
         <ActionButtons
           phase={store.phase}

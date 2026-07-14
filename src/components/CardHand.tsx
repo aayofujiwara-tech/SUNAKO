@@ -9,24 +9,31 @@ interface Props {
   small?: boolean
   nowrap?: boolean
   twocard?: boolean
+  /** カード1枚あたりの横幅上限（例: 'max-w-[3.33rem] sm:max-w-[4.67rem] md:max-w-[6rem]'） */
+  maxWClass?: string
+  /** カード1枚あたりの高さ上限（例: 'max-h-20 sm:max-h-28 md:max-h-36'） */
+  maxHClass?: string
   label?: string
   isShuffling?: boolean
 }
 
-export function CardHand({ cards, faceDown = false, highlightCards = [], small = false, nowrap = false, twocard = false, label, isShuffling = false }: Props) {
+export function CardHand({ cards, faceDown = false, highlightCards = [], small = false, nowrap = false, twocard = false, maxWClass, maxHClass, label, isShuffling = false }: Props) {
   const highlightIds = new Set(highlightCards.map((c) => c.id))
 
-  const wrapperClass = nowrap
+  const fluid = nowrap || twocard || Boolean(maxWClass)
+  const wrapperClass = maxWClass
+    ? `flex-1 min-w-0 ${maxWClass}`
+    : nowrap
     ? 'flex-1 min-w-8 max-w-14 sm:min-w-12 sm:max-w-20 md:min-w-16 md:max-w-28 lg:min-w-20 lg:max-w-36'
     : twocard
     ? 'w-16 sm:w-20 md:w-24 lg:w-28'
     : undefined
 
   return (
-    <div className={`flex flex-col items-center gap-1 ${nowrap ? 'w-full' : ''}`}>
+    <div className={`flex flex-col items-center gap-1 ${fluid ? 'w-full' : ''}`}>
       {label && <p className="text-xs text-white/60 uppercase tracking-wider">{label}</p>}
       <motion.div
-        className={nowrap ? 'flex flex-nowrap w-full gap-1 justify-center' : 'flex flex-wrap justify-center gap-1.5'}
+        className={fluid ? 'flex flex-nowrap w-full gap-1 justify-center' : 'flex flex-wrap justify-center gap-1.5'}
         animate={{ opacity: isShuffling ? 0.15 : 1, scale: isShuffling ? 0.85 : 1 }}
         transition={{ duration: 0.2 }}
       >
@@ -39,7 +46,7 @@ export function CardHand({ cards, faceDown = false, highlightCards = [], small =
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: i * 0.05 }}
             >
-              <CardBack small={small} fluid={nowrap || twocard} />
+              <CardBack small={small} fluid={fluid} maxHClass={maxHClass} />
             </motion.div>
           ) : (
             <motion.div
@@ -49,7 +56,7 @@ export function CardHand({ cards, faceDown = false, highlightCards = [], small =
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: i * 0.05 }}
             >
-              <PlayingCard card={card} highlighted={highlightIds.has(card.id)} small={small} fluid={nowrap || twocard} />
+              <PlayingCard card={card} highlighted={highlightIds.has(card.id)} small={small} fluid={fluid} maxHClass={maxHClass} />
             </motion.div>
           ),
         )}

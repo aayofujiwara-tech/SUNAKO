@@ -9,12 +9,14 @@ interface Props {
   highlighted?: boolean
   small?: boolean
   fluid?: boolean
+  /** fluid時の高さ上限（例: 'max-h-24 sm:max-h-32 md:max-h-40'） */
+  maxHClass?: string
   className?: string
 }
 
-export function PlayingCard({ card, faceDown = false, highlighted = false, small = false, fluid = false, className }: Props) {
+export function PlayingCard({ card, faceDown = false, highlighted = false, small = false, fluid = false, maxHClass, className }: Props) {
   const base = fluid
-    ? 'w-full aspect-[2/3] text-[10px] sm:text-xs md:text-sm rounded-sm'
+    ? cn('w-full aspect-[2/3] text-[10px] sm:text-xs md:text-sm rounded-sm', maxHClass)
     : small
     ? 'w-10 h-14 text-xs rounded-md'
     : 'w-16 h-24 text-sm rounded-lg'
@@ -62,6 +64,6 @@ export function PlayingCard({ card, faceDown = false, highlighted = false, small
   )
 }
 
-export function CardBack({ small, fluid, className }: { small?: boolean; fluid?: boolean; className?: string }) {
-  return <PlayingCard faceDown small={small} fluid={fluid} className={className} />
+export function CardBack({ small, fluid, maxHClass, className }: { small?: boolean; fluid?: boolean; maxHClass?: string; className?: string }) {
+  return <PlayingCard faceDown small={small} fluid={fluid} maxHClass={maxHClass} className={className} />
 }

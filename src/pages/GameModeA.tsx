@@ -327,8 +327,13 @@ export function GameModeA() {
   const showResult = store.phase === 'round_result' || store.phase === 'game_over'
   const showHand = store.phase === 'opponent_declared' || store.phase === 'round_result' || store.phase === 'game_over'
 
+  // モードA 手札（7枚）のカードサイズ上限（h-20 sm:h-28 md:h-36 相当）
+  const HAND_MAX_W = 'max-w-[3.33rem] sm:max-w-[4.67rem] md:max-w-[6rem]'
+  const HAND_MAX_H = 'max-h-20 sm:max-h-28 md:max-h-36'
+
   return (
     <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col max-w-md mx-auto">
+      {/* 戻るボタン */}
       <div className="flex-none px-4 pt-2 pb-1">
         <button onClick={() => navigate('/')} className="text-xs text-white/40 hover:text-white/70 transition-colors">
           ← タイトル
@@ -342,7 +347,7 @@ export function GameModeA() {
           {store.settings.matchType === 'cpu' &&
             ` (${store.settings.cpuDifficulty === 'easy' ? '易' : store.settings.cpuDifficulty === 'normal' ? '普' : '難'})`}
         </p>
-        <CardHand cards={store.opponent.hand} faceDown nowrap isShuffling={store.opponent.isExchanging} />
+        <CardHand cards={store.opponent.hand} faceDown maxWClass={HAND_MAX_W} maxHClass={HAND_MAX_H} isShuffling={store.opponent.isExchanging} />
         <p className="min-h-5 flex items-center justify-center text-center">
           {store.opponent.isExchanging
             ? <span className="text-xs text-white/40 animate-pulse">交換中…</span>
@@ -353,7 +358,7 @@ export function GameModeA() {
       </section>
 
       {/* 中央スコアエリア */}
-      <section className="flex-none px-4 py-1.5 flex justify-center">
+      <section className="flex-none px-4 py-1.5 flex justify-center border-b border-white/10">
         <ScorePanel
           playerScore={store.player.score}
           opponentScore={store.opponent.score}
@@ -364,25 +369,25 @@ export function GameModeA() {
         />
       </section>
 
-      {/* 自分エリア：残スペースを占有 */}
-      <section className="flex-1 min-h-0 overflow-hidden px-4 py-2 flex flex-col items-center gap-1">
+      {/* 自分手札エリア：残スペースを占有 */}
+      <section className="flex-1 min-h-0 overflow-hidden px-4 py-2 flex flex-col items-center justify-center gap-1">
         <div className="flex-none w-full flex items-center justify-center">
           <StatusBanner phase={store.phase} />
         </div>
         <div className="flex-none w-full flex items-center justify-center">
           <HandDisplay handResult={store.player.handResult} visible={showHand} />
         </div>
-        {/* 手札エリア：残高さを占有してカードを縦方向に中央寄せ */}
-        <div className="flex-1 min-h-0 w-full flex items-center">
+        <div className="flex-none w-full flex items-center justify-center">
           <CardHand
             cards={store.player.hand}
-            nowrap
+            maxWClass={HAND_MAX_W}
+            maxHClass={HAND_MAX_H}
             highlightCards={showHand ? (store.player.handResult?.bestFive ?? []) : []}
           />
         </div>
       </section>
 
-      {/* アクションボタン */}
+      {/* プログレスバー + アクションボタン */}
       <section className="flex-none p-4 border-t border-white/10">
         <ActionButtons
           phase={store.phase}
