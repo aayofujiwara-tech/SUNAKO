@@ -399,13 +399,6 @@ export function GameModeB() {
 
   const highlightCards = showHand ? (store.player.handResult?.bestFive ?? []) : []
 
-  // コミュニティカードのサイズ上限（h-24 sm:h-32 md:h-40 相当）
-  const COMMUNITY_MAX_W = 'max-w-[4rem] sm:max-w-[5.33rem] md:max-w-[6.67rem]'
-  const COMMUNITY_MAX_H = 'max-h-24 sm:max-h-32 md:max-h-40'
-  // モードB 手札（2枚）のサイズ上限（h-28 sm:h-36 md:h-44 相当）
-  const HAND_MAX_W = 'max-w-[4.67rem] sm:max-w-[6rem] md:max-w-[7.33rem]'
-  const HAND_MAX_H = 'max-h-28 sm:max-h-36 md:max-h-44'
-
   return (
     <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col max-w-md mx-auto">
       {/* 戻るボタン */}
@@ -430,14 +423,13 @@ export function GameModeB() {
         </p>
       </section>
 
-      {/* コミュニティカードエリア：自然な高さ */}
-      <section className="flex-none px-4 py-2 flex items-center justify-center border-b border-white/10">
+      {/* コミュニティカードエリア */}
+      <section className="flex-none h-[20dvh] overflow-hidden px-4 py-2 flex flex-col items-center justify-center border-b border-white/10">
         <CommunityCards
           cards={store.communityCards}
           revealedCount={store.revealedCommunityCount}
           highlightCards={highlightCards}
-          maxWClass={COMMUNITY_MAX_W}
-          maxHClass={COMMUNITY_MAX_H}
+          fluid
         />
       </section>
 
@@ -461,11 +453,10 @@ export function GameModeB() {
         <div className="flex-none w-full flex items-center justify-center">
           <HandDisplay handResult={store.player.handResult} visible={showHand} />
         </div>
-        <div className="flex-none w-full flex items-center justify-center">
+        <div className="flex-1 min-h-0 w-full flex items-center justify-center">
           <CardHand
             cards={store.player.hand}
-            maxWClass={HAND_MAX_W}
-            maxHClass={HAND_MAX_H}
+            fluid
             highlightCards={highlightCards}
           />
         </div>

@@ -42,3 +42,25 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--color-casino-gold);
   cursor: pointer;
 }
+
+/* カードエリア：親コンテナの実サイズ(cqh)にカードを追従させる */
+.card-container {
+  container-type: size;
+  width: 100%;
+  height: 100%;
+}
+
+.card-fluid {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 2 / 3;
+}
+
+.card-fluid .card-corner {
+  font-size: calc(1cqh * 0.2);
+}
+
+.card-fluid .card-center-suit {
+  font-size: calc(1cqh * 0.4);
+}

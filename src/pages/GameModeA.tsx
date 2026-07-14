@@ -327,10 +327,6 @@ export function GameModeA() {
   const showResult = store.phase === 'round_result' || store.phase === 'game_over'
   const showHand = store.phase === 'opponent_declared' || store.phase === 'round_result' || store.phase === 'game_over'
 
-  // モードA 手札（7枚）のカードサイズ上限（h-20 sm:h-28 md:h-36 相当）
-  const HAND_MAX_W = 'max-w-[3.33rem] sm:max-w-[4.67rem] md:max-w-[6rem]'
-  const HAND_MAX_H = 'max-h-20 sm:max-h-28 md:max-h-36'
-
   return (
     <div className="h-dvh overflow-hidden bg-casino-bg text-white flex flex-col max-w-md mx-auto">
       {/* 戻るボタン */}
@@ -341,13 +337,13 @@ export function GameModeA() {
       </div>
 
       {/* 相手エリア */}
-      <section className="flex-none px-4 py-2 flex flex-col items-center gap-1 border-b border-white/10">
-        <p className="text-xs text-white/50 uppercase tracking-wider">
+      <section className="flex-none h-[18dvh] overflow-hidden px-4 py-2 flex flex-col items-center gap-1 border-b border-white/10">
+        <p className="flex-none text-xs text-white/50 uppercase tracking-wider">
           {store.settings.matchType === 'cpu' ? 'CPU' : '相手'}
           {store.settings.matchType === 'cpu' &&
             ` (${store.settings.cpuDifficulty === 'easy' ? '易' : store.settings.cpuDifficulty === 'normal' ? '普' : '難'})`}
         </p>
-        <CardHand cards={store.opponent.hand} faceDown maxWClass={HAND_MAX_W} maxHClass={HAND_MAX_H} isShuffling={store.opponent.isExchanging} />
+        <CardHand cards={store.opponent.hand} faceDown fluid isShuffling={store.opponent.isExchanging} />
         <p className="min-h-5 flex items-center justify-center text-center">
           {store.opponent.isExchanging
             ? <span className="text-xs text-white/40 animate-pulse">交換中…</span>
@@ -377,11 +373,10 @@ export function GameModeA() {
         <div className="flex-none w-full flex items-center justify-center">
           <HandDisplay handResult={store.player.handResult} visible={showHand} />
         </div>
-        <div className="flex-none w-full flex items-center justify-center">
+        <div className="flex-1 min-h-0 w-full flex items-center justify-center">
           <CardHand
             cards={store.player.hand}
-            maxWClass={HAND_MAX_W}
-            maxHClass={HAND_MAX_H}
+            fluid
             highlightCards={showHand ? (store.player.handResult?.bestFive ?? []) : []}
           />
         </div>

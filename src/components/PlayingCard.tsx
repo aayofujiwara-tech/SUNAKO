@@ -8,15 +8,14 @@ interface Props {
   faceDown?: boolean
   highlighted?: boolean
   small?: boolean
+  /** 親のcard-containerの高さ(cqh)に自動追従させる */
   fluid?: boolean
-  /** fluid時の高さ上限（例: 'max-h-24 sm:max-h-32 md:max-h-40'） */
-  maxHClass?: string
   className?: string
 }
 
-export function PlayingCard({ card, faceDown = false, highlighted = false, small = false, fluid = false, maxHClass, className }: Props) {
+export function PlayingCard({ card, faceDown = false, highlighted = false, small = false, fluid = false, className }: Props) {
   const base = fluid
-    ? cn('w-full aspect-[2/3] text-[10px] sm:text-xs md:text-sm rounded-sm', maxHClass)
+    ? 'card-fluid rounded-sm'
     : small
     ? 'w-10 h-14 text-xs rounded-md'
     : 'w-16 h-24 text-sm rounded-lg'
@@ -53,17 +52,17 @@ export function PlayingCard({ card, faceDown = false, highlighted = false, small
         className,
       )}
     >
-      <div className={`flex flex-col items-start leading-none font-bold ${fluid ? 'text-sm sm:text-base md:text-lg' : 'text-sm'}`}>
+      <div className={cn('flex flex-col items-start leading-none font-bold', fluid ? 'card-corner' : 'text-sm')}>
         <span>{rankLabel(card.rank)}</span>
         <span>{suitSymbol(card.suit)}</span>
       </div>
-      <div className={`flex-1 flex items-center justify-center leading-none font-bold ${fluid ? 'text-2xl sm:text-3xl md:text-4xl' : 'text-2xl'}`}>
+      <div className={cn('flex-1 flex items-center justify-center leading-none font-bold', fluid ? 'card-center-suit' : 'text-2xl')}>
         {suitSymbol(card.suit)}
       </div>
     </motion.div>
   )
 }
 
-export function CardBack({ small, fluid, maxHClass, className }: { small?: boolean; fluid?: boolean; maxHClass?: string; className?: string }) {
-  return <PlayingCard faceDown small={small} fluid={fluid} maxHClass={maxHClass} className={className} />
+export function CardBack({ small, fluid, className }: { small?: boolean; fluid?: boolean; className?: string }) {
+  return <PlayingCard faceDown small={small} fluid={fluid} className={className} />
 }
